@@ -93,8 +93,8 @@ dependencies {
     implementation ("com.google.mlkit:barcode-scanning:17.2.0")
 
     // Hilt
-    implementation("com.google.dagger:hilt-android:2.51")
-    kapt("com.google.dagger:hilt-compiler:2.51")
+    implementation("com.google.dagger:hilt-android:2.56")
+    kapt("com.google.dagger:hilt-compiler:2.56")
 
 // Retrofit
     implementation("com.squareup.retrofit2:retrofit:2.9.0")

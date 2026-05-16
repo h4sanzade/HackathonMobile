@@ -76,4 +76,8 @@ dependencies {
 
     // CardView
     implementation ("androidx.cardview:cardview:1.0.0")
+
+    
+        implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
 }

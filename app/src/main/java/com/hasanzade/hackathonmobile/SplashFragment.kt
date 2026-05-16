@@ -61,7 +61,6 @@ class SplashFragment : Fragment() {
                 if (!isAdded) return@launch
 
                 if (isLoggedIn && role != null) {
-                    // Token var — birbaşa dashboard-a keç
                     val action = when (role) {
                         "REGIONAL_MANAGER", "SUPER_ADMIN" ->
                             R.id.action_splashFragment_to_regionalDashboardFragment
@@ -76,7 +75,7 @@ class SplashFragment : Fragment() {
                     )
                 }
             }
-        }, 10_000)
+        }, 3000)
     }
 
     override fun onDestroyView() {

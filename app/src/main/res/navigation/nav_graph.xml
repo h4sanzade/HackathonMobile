@@ -87,6 +87,18 @@
 
     </fragment>
 
+    <fragment
+        android:id="@+id/scannerFragment"
+        android:name="com.hasanzade.hackathonmobile.ScannerFragment"
+        android:label="Scanner"
+        tools:layout="@layout/fragment_scanner">
+
+        <action
+            android:id="@+id/action_scannerFragment_to_departmentDashboard"
+            app:destination="@id/departmentDashboardFragment"
+            app:popUpTo="@id/scannerFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
     <!-- ═══════════════════════════════════════════ -->
     <!--         DEPARTMENT HEAD EKRANLAR            -->
     <!-- ═══════════════════════════════════════════ -->
@@ -95,6 +107,12 @@
         android:name="com.hasanzade.hackathonmobile.DepartmentDashboardFragment"
         android:label="Department Dashboard"
         tools:layout="@layout/fragment_department_dashboard">
+
+        <action
+            android:id="@+id/action_departmentDashboard_to_scannerFragment"
+            app:destination="@id/scannerFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/fade_out" />
 
         <!-- Logout → Login-ə qayıt, bütün back stack silinir -->
         <action

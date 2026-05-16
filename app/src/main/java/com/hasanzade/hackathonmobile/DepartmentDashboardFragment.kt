@@ -52,12 +52,10 @@ class DepartmentDashboardFragment : Fragment() {
         binding.bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_dashboard -> true
-                R.id.nav_alerts    -> {
-                    // TODO: AlertsFragment-ə navigate et
-                    true
-                }
-                R.id.nav_scanner   -> {
-                    // TODO: ScannerFragment-ə navigate et
+                R.id.nav_scanner -> {
+                    findNavController().navigate(
+                        R.id.action_departmentDashboard_to_scannerFragment
+                    )
                     true
                 }
                 R.id.nav_profile   -> {
@@ -72,7 +70,9 @@ class DepartmentDashboardFragment : Fragment() {
 
     private fun setupClickListeners() {
         binding.cardScanBarcode.setOnClickListener {
-            // TODO: Scanner-ə navigate et
+            findNavController().navigate(
+                R.id.action_departmentDashboard_to_scannerFragment
+            )
         }
         binding.cardLogWaste.setOnClickListener {
             // TODO: Log Waste-ə navigate et

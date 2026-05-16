@@ -2,4 +2,28 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Bravo Azerbaijan Brand Colors -->
+    <color name="brand_primary">#1B4332</color>
+    <color name="brand_primary_dark">#0D2B1F</color>
+    <color name="brand_primary_light">#2D6A4F</color>
+    <color name="brand_accent">#52B788</color>
+    <color name="brand_accent_light">#74C69D</color>
+
+    <color name="background_screen">#F0F4F2</color>
+    <color name="surface_card">#FFFFFF</color>
+    <color name="surface_input">#FFFFFF</color>
+
+    <color name="text_primary">#1B4332</color>
+    <color name="text_secondary">#4A6358</color>
+    <color name="text_hint">#8FAF9F</color>
+    <color name="text_link">#1B4332</color>
+    <color name="text_on_primary">#FFFFFF</color>
+    <color name="text_footer">#9EB5AB</color>
+
+    <color name="input_border">#D4E4DC</color>
+    <color name="input_border_focused">#1B4332</color>
+    <color name="divider">#E8F0EC</color>
+    <color name="ripple_dark">#1A1B4332</color>
+    <color name="error">#D32F2F</color>
 </resources>

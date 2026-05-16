@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/nav_dashboard"
+        android:icon="@drawable/dashboard_icon"
+        android:title="Dashboard" />
+
+    <item
+        android:id="@+id/nav_alerts"
+        android:icon="@drawable/alert_icon"
+        android:title="Alerts" />
+
+    <item
+        android:id="@+id/nav_scanner"
+        android:icon="@drawable/barcode_icon"
+        android:title="Scanner" />
+
+    <item
+        android:id="@+id/nav_profile"
+        android:icon="@drawable/user_icon"
+        android:title="Profile" />
+
+</menu>

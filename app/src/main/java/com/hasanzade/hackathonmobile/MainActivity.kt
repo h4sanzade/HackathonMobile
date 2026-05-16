@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import com.hasanzade.hackathonmobile.databinding.ActivityMainBinding
+import dagger.hilt.android.AndroidEntryPoint
+@AndroidEntryPoint
 
 class MainActivity : AppCompatActivity() {
 

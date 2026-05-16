@@ -63,12 +63,12 @@ class SplashFragment : Fragment() {
                 if (isLoggedIn && role != null) {
                     val action = when (role) {
                         "REGIONAL_MANAGER", "SUPER_ADMIN" ->
-                            R.id.action_splashFragment_to_regionalDashboardFragment
+                            R.id.action_splashFragment_to_departmentDashboardFragment  // Admin → Barkod ekranı
                         else ->
-                            R.id.action_splashFragment_to_departmentDashboardFragment
+                            R.id.action_splashFragment_to_regionalDashboardFragment    // Müdür → Analitika ekranı
                     }
                     findNavController().navigate(action)
-                } else {
+                }else {
                     // Token yoxdur — login-ə keç
                     findNavController().navigate(
                         R.id.action_splashFragment_to_loginFragment

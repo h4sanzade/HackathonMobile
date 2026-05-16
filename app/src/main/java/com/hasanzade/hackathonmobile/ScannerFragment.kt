@@ -11,24 +11,33 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
 import android.widget.EditText
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import com.google.android.material.snackbar.Snackbar
 import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import com.hasanzade.hackathonmobile.databinding.FragmentScannerBinding
+import com.hasanzade.hackathonmobile.domain.model.ProductModel
+import com.hasanzade.hackathonmobile.ui.ScanUiState
+import com.hasanzade.hackathonmobile.ui.ScannerViewModel
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
+@AndroidEntryPoint
 class ScannerFragment : Fragment() {
 
     private var _binding: FragmentScannerBinding? = null
     private val binding get() = _binding!!
+
+    private val viewModel: ScannerViewModel by viewModels()
 
     private var cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private var camera: Camera? = null
@@ -36,12 +45,11 @@ class ScannerFragment : Fragment() {
     private var isScanning = true
     private var scanLineAnimator: ObjectAnimator? = null
 
-    // Kamera icazəsi
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted) startCamera()
             else {
-                Toast.makeText(requireContext(), "Kamera icazəsi lazımdır", Toast.LENGTH_SHORT).show()
+                Snackbar.make(binding.root, "Kamera icazəsi lazımdır", Snackbar.LENGTH_LONG).show()
                 findNavController().popBackStack()
             }
         }
@@ -56,24 +64,79 @@ class ScannerFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         setupClickListeners()
         startScanLineAnimation()
+        observeViewModel()
         checkCameraPermission()
     }
 
-    // ── KAMERA İCAZƏSİ ────────────────────────────────────
+    private fun observeViewModel() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.scanState.collect { state ->
+                when (state) {
+                    is ScanUiState.Idle -> {
+                        binding.tvProductInfo.text = "--"
+                        binding.tvScanStatus.text  = "Gözlənir"
+                        resetScanLine()
+                    }
+                    is ScanUiState.Loading -> {
+                        binding.tvProductInfo.text = "Axtarılır..."
+                        binding.tvScanStatus.text  = "⏳"
+                    }
+                    is ScanUiState.Success -> {
+                        showProductFound(state.product)
+                    }
+                    is ScanUiState.Error -> {
+                        binding.tvProductInfo.text = "Tapılmadı"
+                        binding.tvScanStatus.text  = "✗ Xəta"
+                        binding.scanLine.setBackgroundColor(
+                            android.graphics.Color.parseColor("#DC2626")
+                        )
+                        Snackbar.make(binding.root, state.message, Snackbar.LENGTH_SHORT).show()
+                        scheduleReset()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun showProductFound(product: ProductModel) {
+        binding.tvLastScan.text    = product.barcode
+        binding.tvProductInfo.text = product.name
+        binding.tvScanStatus.text  = "✓ Tapıldı"
+
+        binding.scanLine.setBackgroundColor(
+            ContextCompat.getColor(requireContext(), R.color.brand_primary)
+        )
+
+        vibrate()
+        scheduleReset()
+    }
+
+    private fun scheduleReset() {
+        binding.root.postDelayed({
+            if (isAdded) {
+                isScanning = true
+                viewModel.resetState()
+                resetScanLine()
+            }
+        }, 2500)
+    }
+
+    private fun resetScanLine() {
+        binding.scanLine.background =
+            ContextCompat.getDrawable(requireContext(), R.drawable.bg_scan_line)
+    }
+
     private fun checkCameraPermission() {
         when {
             ContextCompat.checkSelfPermission(
                 requireContext(), Manifest.permission.CAMERA
             ) == PackageManager.PERMISSION_GRANTED -> startCamera()
-
             else -> requestPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
 
-    // ── KAMERA BAŞLAT ─────────────────────────────────────
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
         cameraProviderFuture.addListener({
@@ -91,7 +154,8 @@ class ScannerFragment : Fragment() {
                         if (isScanning) {
                             isScanning = false
                             requireActivity().runOnUiThread {
-                                onBarcodeDetected(barcode)
+                                binding.tvLastScan.text = barcode
+                                viewModel.searchBarcode(barcode)
                             }
                         }
                     })
@@ -106,62 +170,28 @@ class ScannerFragment : Fragment() {
                     imageAnalyzer
                 )
             } catch (e: Exception) {
-                android.util.Log.e("SCANNER", "Camera bind error", e)
+                android.util.Log.e("SCANNER", "Camera error", e)
             }
+
         }, ContextCompat.getMainExecutor(requireContext()))
     }
 
-    // ── BARCODE DETECT ────────────────────────────────────
-    private fun onBarcodeDetected(barcode: String) {
-        // Scan line rəngini yaşıla çevir
-        binding.scanLine.setBackgroundColor(
-            ContextCompat.getColor(requireContext(), R.color.brand_primary)
-        )
-
-        // 3 box güncəllə
-        binding.tvLastScan.text    = barcode
-        binding.tvProductInfo.text = "Yüklənir..."
-        binding.tvScanStatus.text  = "✓ Tapıldı"
-
-        // Vibrate
-        val vibrator = requireContext().getSystemService(android.os.Vibrator::class.java)
-        vibrator?.vibrate(android.os.VibrationEffect.createOneShot(100,
-            android.os.VibrationEffect.DEFAULT_AMPLITUDE))
-
-        Toast.makeText(requireContext(), "Scan edildi: $barcode", Toast.LENGTH_SHORT).show()
-
-        // 2 saniyə sonra yenidən scan et
-        binding.root.postDelayed({
-            if (isAdded) {
-                isScanning = true
-                binding.tvScanStatus.text = "Gözlənir"
-                binding.scanLine.background =
-                    ContextCompat.getDrawable(requireContext(), R.drawable.bg_scan_line)
-            }
-        }, 2000)
-    }
-
-    // ── SCAN LINE ANİMASİYA ───────────────────────────────
     private fun startScanLineAnimation() {
         binding.scanBox.post {
             val boxHeight = binding.scanBox.height.toFloat()
-
             scanLineAnimator = ObjectAnimator.ofFloat(
                 binding.scanLine, "translationY", 0f, boxHeight - 4f
             ).apply {
-                duration          = 1800
-                repeatCount       = ValueAnimator.INFINITE
-                repeatMode        = ValueAnimator.REVERSE
-                interpolator      = LinearInterpolator()
+                duration     = 1800
+                repeatCount  = ValueAnimator.INFINITE
+                repeatMode   = ValueAnimator.REVERSE
+                interpolator = LinearInterpolator()
                 start()
             }
         }
     }
 
-    // ── DÜYMƏLƏR ──────────────────────────────────────────
     private fun setupClickListeners() {
-
-        // Flashlight
         binding.btnFlashlight.setOnClickListener {
             isFlashOn = !isFlashOn
             camera?.cameraControl?.enableTorch(isFlashOn)
@@ -174,21 +204,18 @@ class ScannerFragment : Fragment() {
             )
         }
 
-        // Manual Entry
         binding.btnManualEntry.setOnClickListener {
             showManualEntryDialog()
         }
 
-        // Cancel
         binding.btnCancel.setOnClickListener {
             findNavController().popBackStack()
         }
     }
 
-    // ── MANUAL GİRİŞ DİALOQ ──────────────────────────────
     private fun showManualEntryDialog() {
         val editText = EditText(requireContext()).apply {
-            hint = "Barkodu daxil edin"
+            hint      = "Barkodu daxil edin"
             inputType = android.text.InputType.TYPE_CLASS_TEXT
             setPadding(48, 32, 48, 32)
         }
@@ -199,14 +226,43 @@ class ScannerFragment : Fragment() {
             .setPositiveButton("Axtar") { _, _ ->
                 val input = editText.text.toString().trim()
                 if (input.isNotEmpty()) {
-                    onBarcodeDetected(input)
+                    isScanning = false
+                    binding.tvLastScan.text = input
+                    viewModel.searchBarcode(input)
                 }
             }
             .setNegativeButton("Ləğv et", null)
             .show()
     }
 
-    // ── BARCODE ANALYZER ─────────────────────────────────
+    private fun vibrate() {
+        try {
+            val vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                val vibratorManager = requireContext().getSystemService(
+                    android.os.VibratorManager::class.java
+                )
+                vibratorManager?.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                requireContext().getSystemService(android.os.Vibrator::class.java)
+            }
+
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                vibrator?.vibrate(
+                    android.os.VibrationEffect.createOneShot(
+                        100L,
+                        android.os.VibrationEffect.DEFAULT_AMPLITUDE
+                    )
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator?.vibrate(100L)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SCANNER", "Vibrate error", e)
+        }
+    }
+
     inner class BarcodeAnalyzer(
         private val onResult: (String) -> Unit
     ) : ImageAnalysis.Analyzer {
@@ -216,23 +272,16 @@ class ScannerFragment : Fragment() {
         @androidx.camera.core.ExperimentalGetImage
         override fun analyze(imageProxy: ImageProxy) {
             val mediaImage = imageProxy.image ?: run {
-                imageProxy.close()
-                return
+                imageProxy.close(); return
             }
-
             val image = InputImage.fromMediaImage(
                 mediaImage, imageProxy.imageInfo.rotationDegrees
             )
-
             scanner.process(image)
                 .addOnSuccessListener { barcodes ->
-                    for (barcode in barcodes) {
-                        barcode.rawValue?.let { onResult(it) }
-                    }
+                    barcodes.firstOrNull()?.rawValue?.let { onResult(it) }
                 }
-                .addOnCompleteListener {
-                    imageProxy.close()
-                }
+                .addOnCompleteListener { imageProxy.close() }
         }
     }
 

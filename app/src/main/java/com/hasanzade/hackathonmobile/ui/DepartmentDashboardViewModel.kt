@@ -1,100 +1,76 @@
 package com.hasanzade.hackathonmobile.ui
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.hasanzade.hackathonmobile.data.local.TokenDataStore
+import com.hasanzade.hackathonmobile.data.remote.NetworkResult
+import com.hasanzade.hackathonmobile.domain.model.DashboardModel
+import com.hasanzade.hackathonmobile.domain.usecase.GetAiAnalysisUseCase
+import com.hasanzade.hackathonmobile.domain.usecase.GetDashboardUseCase
+import com.hasanzade.hackathonmobile.domain.usecase.ResolveReminderUseCase
 import com.hasanzade.hackathonmobile.ui.model.RiskyBatchUiModel
-import kotlinx.coroutines.Dispatchers
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-data class DeptDashboardState(
-    val isLoading: Boolean                    = true,
-    val sectorName: String                    = "--",
-    val displayName: String                   = "--",
-    val wasteAmount: String                   = "--",
-    val wasteTrend: String                    = "↑ --%",
-    val stockHealthPercent: Int               = 0,
-    val stockHealthLabel: String              = "--",
-    val attentionCount: String                = "--",
-    val riskyBatches: List<RiskyBatchUiModel> = RiskyBatchUiModel.placeholder(),
-    val error: String?                        = null
-)
+sealed class DashboardUiState {
+    object Loading                         : DashboardUiState()
+    data class Success(val data: DashboardModel) : DashboardUiState()
+    data class Error(val message: String)  : DashboardUiState()
+}
 
-class DepartmentDashboardViewModel(application: Application) : AndroidViewModel(application) {
+@HiltViewModel
+class DepartmentDashboardViewModel @Inject constructor(
+    private val getDashboardUseCase: GetDashboardUseCase,
+    private val getAiAnalysisUseCase: GetAiAnalysisUseCase,
+    private val resolveReminderUseCase: ResolveReminderUseCase
+) : ViewModel() {
 
-    private val tokenDataStore = TokenDataStore(application)
+    private val _uiState = MutableStateFlow<DashboardUiState>(DashboardUiState.Loading)
+    val uiState: StateFlow<DashboardUiState> = _uiState
 
-    private val _state = MutableLiveData(DeptDashboardState())
-    val state: LiveData<DeptDashboardState> = _state
+    private val _resolveState = MutableStateFlow<NetworkResult<String>?>(null)
+    val resolveState: StateFlow<NetworkResult<String>?> = _resolveState
+
+    private val _aiRiskLevel = MutableStateFlow("--")
+    val aiRiskLevel: StateFlow<String> = _aiRiskLevel
 
     init {
-        loadSession()
+        loadDashboard()
     }
 
-    private fun loadSession() {
+    fun loadDashboard() {
         viewModelScope.launch {
-            val displayName = tokenDataStore.getDisplayName() ?: "--"
-            val department  = tokenDataStore.getDepartment() ?: "--"
-            val filial      = tokenDataStore.getFilial() ?: "--"
-
-            _state.value = _state.value?.copy(
-                sectorName  = department,
-                displayName = displayName,
-                isLoading   = false
-            )
+            _uiState.value = DashboardUiState.Loading
+            when (val result = getDashboardUseCase()) {
+                is NetworkResult.Success -> {
+                    _uiState.value = DashboardUiState.Success(result.data)
+                    loadAiAnalysis()
+                }
+                is NetworkResult.Error ->
+                    _uiState.value = DashboardUiState.Error(result.message)
+                else -> Unit
+            }
         }
     }
 
-    // Backend hazır olanda bu metodu çağır
-    fun loadDashboard(store: String, department: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            // TODO: API call burada olacaq
-            // val reminders = reminderRepository.getActiveReminders(store, department)
-            // val batches = reminders.map { RiskyBatchUiModel.fromReminder(...) }
-            // _state.postValue(_state.value?.copy(riskyBatches = batches))
+    private fun loadAiAnalysis() {
+        viewModelScope.launch {
+            when (val result = getAiAnalysisUseCase()) {
+                is NetworkResult.Success ->
+                    _aiRiskLevel.value = result.data.riskLevel
+                else -> Unit
+            }
         }
     }
 
-    // Mock data — demo üçün
-    fun loadMockData() {
-        val mockBatches = listOf(
-            RiskyBatchUiModel.fromReminder(
-                productName      = "Organic Green Juices (500ml)",
-                batchCode        = "FG-1-0516-DR8821",
-                daysLeft         = 0,
-                urgency          = "CRITICAL",
-                quantity         = 5.0,
-                originalQuantity = 50.0
-            ),
-            RiskyBatchUiModel.fromReminder(
-                productName      = "Sparkling Water (Premium 1L)",
-                batchCode        = "FG-2-0516-DR9045",
-                daysLeft         = 4,
-                urgency          = "WARNING",
-                quantity         = 25.0,
-                originalQuantity = 40.0
-            ),
-            RiskyBatchUiModel.fromReminder(
-                productName      = "Craft Kola (Zero Sugar)",
-                batchCode        = "FG-3-0516-DR7762",
-                daysLeft         = 1,
-                urgency          = "QUALITY",
-                quantity         = 8.0,
-                originalQuantity = 60.0
-            )
-        )
-
-        _state.value = _state.value?.copy(
-            wasteAmount        = "3,200",
-            wasteTrend         = "↑ 4%",
-            stockHealthPercent = 92,
-            stockHealthLabel   = "Good",
-            attentionCount     = "Needs Attention",
-            riskyBatches       = mockBatches,
-            isLoading          = false
-        )
+    fun resolveReminder(batchId: Long) {
+        viewModelScope.launch {
+            _resolveState.value = NetworkResult.Loading
+            _resolveState.value = resolveReminderUseCase(batchId)
+            // Refresh dashboard
+            loadDashboard()
+        }
     }
 }

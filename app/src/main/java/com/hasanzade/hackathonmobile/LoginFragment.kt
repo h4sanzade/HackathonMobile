@@ -77,14 +77,13 @@ class LoginFragment : Fragment() {
                 is LoginUiState.Loading -> setLoadingState(true)
                 is LoginUiState.Success -> {
                     setLoadingState(false)
-                    // Role-a görə fərqli ekrana yönləndir
                     val action = when (state.response.role) {
                         "REGIONAL_MANAGER", "SUPER_ADMIN" ->
-                            R.id.action_loginFragment_to_regionalDashboardFragment
+                            R.id.action_loginFragment_to_departmentDashboardFragment  // Admin → Barkod ekranı
                         "DEPARTMENT_HEAD" ->
-                            R.id.action_loginFragment_to_departmentDashboardFragment
+                            R.id.action_loginFragment_to_regionalDashboardFragment    // Müdür → Analitika ekranı
                         else ->
-                            R.id.action_loginFragment_to_departmentDashboardFragment
+                            R.id.action_loginFragment_to_regionalDashboardFragment
                     }
                     findNavController().navigate(action)
                 }

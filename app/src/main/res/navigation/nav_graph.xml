@@ -5,9 +5,12 @@
     android:id="@+id/nav_graph"
     app:startDestination="@id/splashFragment">
 
+    <!-- ═══════════════════════════════════════════ -->
+    <!--                  SPLASH                     -->
+    <!-- ═══════════════════════════════════════════ -->
     <fragment
         android:id="@+id/splashFragment"
-        android:name="com.yourpackage.SplashFragment"
+        android:name="com.hasanzade.hackathonmobile.SplashFragment"
         android:label="Splash"
         tools:layout="@layout/fragment_splash">
 
@@ -19,12 +22,89 @@
             app:popUpTo="@id/splashFragment"
             app:popUpToInclusive="true" />
 
+        <action
+            android:id="@+id/action_splashFragment_to_regionalDashboardFragment"
+            app:destination="@id/regionalDashboardFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popUpTo="@id/splashFragment"
+            app:popUpToInclusive="true" />
+
+        <action
+            android:id="@+id/action_splashFragment_to_departmentDashboardFragment"
+            app:destination="@id/departmentDashboardFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popUpTo="@id/splashFragment"
+            app:popUpToInclusive="true" />
+
     </fragment>
 
+    <!-- ═══════════════════════════════════════════ -->
+    <!--                  LOGIN                      -->
+    <!-- ═══════════════════════════════════════════ -->
     <fragment
         android:id="@+id/loginFragment"
-        android:name = "com.hasanzade.hackathonmobile.LoginFragment"
+        android:name="com.hasanzade.hackathonmobile.LoginFragment"
         android:label="Login"
-        tools:layout="@layout/fragment_login" />
+        tools:layout="@layout/fragment_login">
+
+        <action
+            android:id="@+id/action_loginFragment_to_regionalDashboardFragment"
+            app:destination="@id/regionalDashboardFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+
+        <action
+            android:id="@+id/action_loginFragment_to_departmentDashboardFragment"
+            app:destination="@id/departmentDashboardFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+
+    </fragment>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!--          REGIONAL MANAGER EKRANLAR          -->
+    <!-- ═══════════════════════════════════════════ -->
+    <fragment
+        android:id="@+id/regionalDashboardFragment"
+        android:name="com.hasanzade.hackathonmobile.RegionalDashboardFragment"
+        android:label="Regional Dashboard"
+        tools:layout="@layout/fragment_regional_dashboard">
+
+        <!-- Logout → Login-ə qayıt, bütün back stack silinir -->
+        <action
+            android:id="@+id/action_regionalDashboard_to_loginFragment"
+            app:destination="@id/loginFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popUpTo="@id/nav_graph"
+            app:popUpToInclusive="true" />
+
+    </fragment>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!--         DEPARTMENT HEAD EKRANLAR            -->
+    <!-- ═══════════════════════════════════════════ -->
+    <fragment
+        android:id="@+id/departmentDashboardFragment"
+        android:name="com.hasanzade.hackathonmobile.DepartmentDashboardFragment"
+        android:label="Department Dashboard"
+        tools:layout="@layout/fragment_department_dashboard">
+
+        <!-- Logout → Login-ə qayıt, bütün back stack silinir -->
+        <action
+            android:id="@+id/action_departmentDashboard_to_loginFragment"
+            app:destination="@id/loginFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popUpTo="@id/nav_graph"
+            app:popUpToInclusive="true" />
+
+    </fragment>
 
 </navigation>

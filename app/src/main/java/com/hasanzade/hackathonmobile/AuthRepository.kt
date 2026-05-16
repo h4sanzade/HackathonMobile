@@ -1,5 +1,6 @@
 package com.hasanzade.hackathonmobile.data.remote
 
+import com.hasanzade.hackathonmobile.data.local.TokenDataStore
 import org.json.JSONObject
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
@@ -22,9 +23,9 @@ sealed class Result<out T> {
     data class Error(val message: String, val code: Int = -1) : Result<Nothing>()
 }
 
-object AuthRepository {
+class AuthRepository(private val tokenDataStore: TokenDataStore) {
 
-    private const val BASE_URL = "https://irrefragably-overcured-clyde.ngrok-free.dev"
+    private val BASE_URL = "https://irrefragably-overcured-clyde.ngrok-free.dev"
 
     suspend fun login(userId: String, password: String): Result<LoginResponse> {
         return try {
@@ -62,23 +63,38 @@ object AuthRepository {
 
             if (code == HttpURLConnection.HTTP_OK) {
                 val json = JSONObject(responseText)
-                Result.Success(
-                    LoginResponse(
-                        accessToken = json.getString("accessToken"),
-                        expiresInSeconds = json.getLong("expiresInSeconds"),
-                        role = json.getString("role"),
-                        displayName = json.getString("displayName"),
-                        filial = json.getString("filial"),
-                        department = json.optString("department").takeIf { it.isNotEmpty() && it != "null" },
-                        allDepartments = json.getBoolean("allDepartments")
-                    )
+                val response = LoginResponse(
+                    accessToken    = json.getString("accessToken"),
+                    expiresInSeconds = json.getLong("expiresInSeconds"),
+                    role           = json.getString("role"),
+                    displayName    = json.getString("displayName"),
+                    filial         = json.getString("filial"),
+                    department     = json.optString("department")
+                        .takeIf { it.isNotEmpty() && it != "null" },
+                    allDepartments = json.getBoolean("allDepartments")
                 )
+
+                // Token-i DataStore-a saxla
+                tokenDataStore.saveSession(
+                    token       = response.accessToken,
+                    role        = response.role,
+                    userId      = userId,
+                    displayName = response.displayName,
+                    filial      = response.filial,
+                    department  = response.department
+                )
+
+                Result.Success(response)
             } else {
-                Result.Error("HTTP $code: $responseText")
+                Result.Error("HTTP $code: $responseText", code)
             }
         } catch (e: Exception) {
             android.util.Log.e("AUTH", "exception", e)
             Result.Error(e.localizedMessage ?: "Unknown error")
         }
+    }
+
+    suspend fun logout() {
+        tokenDataStore.clear()
     }
 }

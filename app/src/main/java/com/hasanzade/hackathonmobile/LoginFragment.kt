@@ -41,7 +41,6 @@ class LoginFragment : Fragment() {
     }
 
     private fun setupUi() {
-        // Clear errors on typing
         binding.etUserId.doAfterTextChanged {
             binding.tilUserId.error = null
             binding.tvError.visibility = View.GONE
@@ -51,7 +50,6 @@ class LoginFragment : Fragment() {
             binding.tvError.visibility = View.GONE
         }
 
-        // Keyboard "Done" triggers login
         binding.etPassword.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
                 hideKeyboard()
@@ -64,7 +62,6 @@ class LoginFragment : Fragment() {
             hideKeyboard()
             triggerLogin()
         }
-
     }
 
     private fun triggerLogin() {
@@ -77,27 +74,29 @@ class LoginFragment : Fragment() {
         viewModel.uiState.observe(viewLifecycleOwner) { state ->
             when (state) {
                 is LoginUiState.Idle -> setLoadingState(false)
-
                 is LoginUiState.Loading -> setLoadingState(true)
-
                 is LoginUiState.Success -> {
                     setLoadingState(false)
-                    // Navigate to home, clearing back stack so user can't go back to login
-                    findNavController().navigate(R.id.action_splashFragment_to_loginFragment)
+                    // Role-a görə fərqli ekrana yönləndir
+                    val action = when (state.response.role) {
+                        "REGIONAL_MANAGER", "SUPER_ADMIN" ->
+                            R.id.action_loginFragment_to_regionalDashboardFragment
+                        "DEPARTMENT_HEAD" ->
+                            R.id.action_loginFragment_to_departmentDashboardFragment
+                        else ->
+                            R.id.action_loginFragment_to_departmentDashboardFragment
+                    }
+                    findNavController().navigate(action)
                 }
-
                 is LoginUiState.Error -> {
                     setLoadingState(false)
-                    when {
-                        state.message == "EMPTY_FIELDS" -> {
-                            val msg = getString(R.string.error_empty_fields)
-                            showInlineError(msg)
-                            if (binding.etUserId.text.isNullOrBlank()) {
+                    when (state.message) {
+                        "EMPTY_FIELDS" -> {
+                            showInlineError(getString(R.string.error_empty_fields))
+                            if (binding.etUserId.text.isNullOrBlank())
                                 binding.tilUserId.error = " "
-                            }
-                            if (binding.etPassword.text.isNullOrBlank()) {
+                            if (binding.etPassword.text.isNullOrBlank())
                                 binding.tilPassword.error = " "
-                            }
                         }
                         else -> showInlineError(getString(R.string.error_login_failed))
                     }
@@ -126,23 +125,18 @@ class LoginFragment : Fragment() {
     }
 
     private fun animateEntrance() {
-        val views = listOf(
-            binding.tvWelcome,
-            binding.tvSubtitle,
-            binding.dividerLine,
-            binding.cardForm,
-        )
-        views.forEachIndexed { index, view ->
-            view.alpha = 0f
-            view.translationY = 30f
-            view.animate()
-                .alpha(1f)
-                .translationY(0f)
-                .setDuration(400)
-                .setStartDelay((index * 80).toLong())
-                .setInterpolator(DecelerateInterpolator())
-                .start()
-        }
+        listOf(binding.tvWelcome, binding.tvSubtitle, binding.dividerLine, binding.cardForm)
+            .forEachIndexed { index, view ->
+                view.alpha = 0f
+                view.translationY = 30f
+                view.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(400)
+                    .setStartDelay((index * 80).toLong())
+                    .setInterpolator(DecelerateInterpolator())
+                    .start()
+            }
     }
 
     private fun hideKeyboard() {

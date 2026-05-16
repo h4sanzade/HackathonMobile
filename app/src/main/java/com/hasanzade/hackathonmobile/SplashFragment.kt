@@ -1,4 +1,4 @@
-package com.yourpackage
+package com.hasanzade.hackathonmobile
 
 import android.os.Bundle
 import android.os.Handler
@@ -6,14 +6,18 @@ import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.DecelerateInterpolator
 import android.widget.ImageView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
-import com.hasanzade.hackathonmobile.R
+import com.hasanzade.hackathonmobile.data.local.TokenDataStore
+import kotlinx.coroutines.launch
 
 class SplashFragment : Fragment() {
 
     private val handler = Handler(Looper.getMainLooper())
+    private lateinit var tokenDataStore: TokenDataStore
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -26,27 +30,57 @@ class SplashFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Logo animasiyası
+        tokenDataStore = TokenDataStore(requireContext())
+
+        animateLogo(view)
+        checkSessionAfterDelay()
+    }
+
+    private fun animateLogo(view: View) {
         val logo = view.findViewById<ImageView>(R.id.iv_splash_logo)
         logo.alpha = 0f
-        logo.scaleX = 0.85f
-        logo.scaleY = 0.85f
+        logo.scaleX = 0.8f
+        logo.scaleY = 0.8f
         logo.animate()
             .alpha(1f)
             .scaleX(1f)
             .scaleY(1f)
-            .setDuration(700)
+            .setDuration(800)
+            .setInterpolator(DecelerateInterpolator())
             .start()
+    }
 
-        // 10 saniyə sonra Login-ə keç
+    private fun checkSessionAfterDelay() {
         handler.postDelayed({
-            findNavController().navigate(R.id.action_splashFragment_to_loginFragment)
+            if (!isAdded) return@postDelayed
+
+            lifecycleScope.launch {
+                val isLoggedIn = tokenDataStore.isLoggedIn()
+                val role       = tokenDataStore.getRole()
+
+                if (!isAdded) return@launch
+
+                if (isLoggedIn && role != null) {
+                    // Token var — birbaşa dashboard-a keç
+                    val action = when (role) {
+                        "REGIONAL_MANAGER", "SUPER_ADMIN" ->
+                            R.id.action_splashFragment_to_regionalDashboardFragment
+                        else ->
+                            R.id.action_splashFragment_to_departmentDashboardFragment
+                    }
+                    findNavController().navigate(action)
+                } else {
+                    // Token yoxdur — login-ə keç
+                    findNavController().navigate(
+                        R.id.action_splashFragment_to_loginFragment
+                    )
+                }
+            }
         }, 10_000)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        // Fragment destroy olanda handler-i təmizlə (memory leak)
         handler.removeCallbacksAndMessages(null)
     }
 }

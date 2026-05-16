@@ -60,4 +60,20 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    implementation( "androidx.datastore:datastore-preferences:1.1.1")
+
+
+
+    // Coroutines
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    // ViewModel
+    implementation ("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
+    implementation ("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")
+
+    // Material
+    implementation ("com.google.android.material:material:1.11.0")
+
+    // CardView
+    implementation ("androidx.cardview:cardview:1.0.0")
 }

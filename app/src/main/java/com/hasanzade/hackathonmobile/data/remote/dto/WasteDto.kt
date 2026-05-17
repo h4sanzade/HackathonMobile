@@ -17,5 +17,16 @@ data class WasteEstimateDto(
 data class WasteLogRequestDto(
     @SerializedName("productId") val productId: Long,
     @SerializedName("quantity")  val quantity: Double,
-    @SerializedName("reason")    val reason: String
+    @SerializedName("reason")    val reason: String,
+    @SerializedName("batchId")   val batchId: Long?,
+)
+
+data class WasteLogResponseDto(
+    @SerializedName("id")             val id: Long?,
+    @SerializedName("productName")    val productName: String?,
+    @SerializedName("quantity")       val quantity: Double?,
+    @SerializedName("totalLoss")      val totalLoss: Double?,
+    @SerializedName("reason")         val reason: String?,
+    @SerializedName("departmentName") val departmentName: String?,
+    @SerializedName("wasteDate")      val wasteDate: String?
 )

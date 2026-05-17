@@ -12,15 +12,17 @@ interface ApiService {
         @Body request: LoginRequestDto
     ): Response<LoginResponseDto>
 
-    // ── DASHBOARD ─────────────────────────────────────────
-    @GET("api/dashboard")
-    suspend fun getDashboard(): Response<DashboardDto>
-
     // ── PRODUCTS ──────────────────────────────────────────
     @GET("api/products/barcode/{barcode}")
     suspend fun getProductByBarcode(
         @Path("barcode") barcode: String
     ): Response<ProductDto>
+
+    @GET("api/products/stock")
+    suspend fun getStock(
+        @Query("store") store: String,
+        @Query("department") department: String
+    ): Response<List<StockDto>>
 
     @POST("api/products")
     suspend fun createProduct(
@@ -31,12 +33,6 @@ interface ApiService {
     suspend fun addBatch(
         @Body request: AddBatchRequestDto
     ): Response<String>
-
-    @GET("api/products/stock")
-    suspend fun getStock(
-        @Query("store") store: String,
-        @Query("department") department: String
-    ): Response<List<StockDto>>
 
     // ── REMINDERS ─────────────────────────────────────────
     @GET("api/reminders/active")
@@ -56,16 +52,10 @@ interface ApiService {
     ): Response<String>
 
     // ── WASTE ─────────────────────────────────────────────
-    @POST("api/waste/estimate")
-    suspend fun estimateWaste(
-        @Body request: WasteEstimateRequestDto
-    ): Response<WasteEstimateDto>
-
     @POST("api/waste/log")
     suspend fun logWaste(
         @Body request: WasteLogRequestDto
     ): Response<String>
-
     // ── AI ────────────────────────────────────────────────
     @GET("api/ai/analyze")
     suspend fun getAiAnalysis(): Response<AiAnalysisDto>

@@ -40,6 +40,19 @@
 
     </fragment>
 
+    <fragment
+        android:id="@+id/logWasteFragment"
+        android:name="com.hasanzade.hackathonmobile.LogWasteFragment"
+        android:label="Log Waste"
+        tools:layout="@layout/fragment_log_waste">
+
+        <action
+            android:id="@+id/action_logWaste_to_departmentDashboard"
+            app:destination="@id/departmentDashboardFragment"
+            app:popUpTo="@id/logWasteFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
     <!-- ═══════════════════════════════════════════ -->
     <!--                  LOGIN                      -->
     <!-- ═══════════════════════════════════════════ -->
@@ -107,7 +120,11 @@
         android:name="com.hasanzade.hackathonmobile.DepartmentDashboardFragment"
         android:label="Department Dashboard"
         tools:layout="@layout/fragment_department_dashboard">
-
+        <action
+            android:id="@+id/action_departmentDashboard_to_logWasteFragment"
+            app:destination="@id/logWasteFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/fade_out" />
         <action
             android:id="@+id/action_departmentDashboard_to_scannerFragment"
             app:destination="@id/scannerFragment"

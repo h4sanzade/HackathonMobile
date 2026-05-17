@@ -3,13 +3,15 @@ package com.hasanzade.hackathonmobile.domain.model
 data class DashboardModel(
     val departmentName: String,
     val storeName: String,
+    val displayName: String,
     val wasteAmount: Double,
     val wasteTrend: Double,
     val stockHealth: Int,
     val stockHealthLabel: String,
     val criticalCount: Int,
     val totalRevenue: Double,
-    val riskyBatches: List<ReminderModel>
+    val riskyBatches: List<ReminderModel>,
+    val wasteLogs: List<WasteLogModel>
 )
 
 data class ReminderModel(
@@ -21,6 +23,15 @@ data class ReminderModel(
     val quantity: Double,
     val daysLeft: Int,
     val urgency: String
+)
+
+data class WasteLogModel(
+    val productName: String,
+    val quantity: Double,
+    val totalLoss: Double,
+    val reason: String,
+    val departmentName: String,
+    val wasteDate: String
 )
 
 data class ProductModel(

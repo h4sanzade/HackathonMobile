@@ -18,4 +18,9 @@ object AppModule {
     fun provideTokenDataStore(
         @ApplicationContext context: Context
     ): TokenDataStore = TokenDataStore(context)
+
+    @Provides
+    @Singleton
+    fun provideBatchRepository(): com.hasanzade.hackathonmobile.data.repository.BatchRepository =
+        com.hasanzade.hackathonmobile.data.repository.BatchRepository()
 }

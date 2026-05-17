@@ -329,3 +329,4 @@ class LogWasteFragment : Fragment() {
         _binding = null
     }
 }
+//use jsonreader.setleneint(true) to accept malformed json at line 1 column 1 path $

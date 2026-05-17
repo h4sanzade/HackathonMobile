@@ -18,7 +18,7 @@ data class WasteLogRequestDto(
     @SerializedName("productId") val productId: Long,
     @SerializedName("quantity")  val quantity: Double,
     @SerializedName("reason")    val reason: String,
-    @SerializedName("batchId")   val batchId: Long?,
+    @SerializedName("batchId")   val batchId: Long?
 )
 
 data class WasteLogResponseDto(

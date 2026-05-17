@@ -41,15 +41,19 @@ class ScannerFragment : Fragment() {
 
     private var cameraExecutor: ExecutorService = Executors.newSingleThreadExecutor()
     private var camera: Camera? = null
-    private var isFlashOn = false
-    private var isScanning = true
+    private var isFlashOn    = false
+    private var isScanning   = true
     private var scanLineAnimator: ObjectAnimator? = null
 
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted) startCamera()
             else {
-                Snackbar.make(binding.root, "Kamera icazəsi lazımdır", Snackbar.LENGTH_LONG).show()
+                Snackbar.make(
+                    binding.root,
+                    "Kamera icazəsi lazımdır",
+                    Snackbar.LENGTH_LONG
+                ).show()
                 findNavController().popBackStack()
             }
         }
@@ -70,6 +74,7 @@ class ScannerFragment : Fragment() {
         checkCameraPermission()
     }
 
+    // ── VIEWMODEL OBSERVE ─────────────────────────────────
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.scanState.collect { state ->
@@ -78,6 +83,7 @@ class ScannerFragment : Fragment() {
                         binding.tvProductInfo.text = "--"
                         binding.tvScanStatus.text  = "Gözlənir"
                         resetScanLine()
+                        isScanning = true
                     }
                     is ScanUiState.Loading -> {
                         binding.tvProductInfo.text = "Axtarılır..."
@@ -87,19 +93,32 @@ class ScannerFragment : Fragment() {
                         showProductFound(state.product)
                     }
                     is ScanUiState.Error -> {
+                        // Məhsul tapılmadı — yenə də ConfirmProduct-a keç
+                        // User özü məlumatları doldursun
                         binding.tvProductInfo.text = "Tapılmadı"
-                        binding.tvScanStatus.text  = "✗ Xəta"
+                        binding.tvScanStatus.text  = "ℹ Yeni məhsul"
                         binding.scanLine.setBackgroundColor(
-                            android.graphics.Color.parseColor("#DC2626")
+                            android.graphics.Color.parseColor("#F97316")
                         )
-                        Snackbar.make(binding.root, state.message, Snackbar.LENGTH_SHORT).show()
-                        scheduleReset()
+                        Snackbar.make(
+                            binding.root,
+                            "Məhsul tapılmadı — əl ilə doldura bilərsiniz",
+                            Snackbar.LENGTH_SHORT
+                        ).show()
+                        // 1.5s sonra ConfirmProduct-a keç — boş form
+                        val lastBarcode = binding.tvLastScan.text.toString()
+                        binding.root.postDelayed({
+                            if (isAdded) {
+                                navigateToConfirm(lastBarcode)
+                            }
+                        }, 1500)
                     }
                 }
             }
         }
     }
 
+    // ── MƏHSUL TAPILDI ────────────────────────────────────
     private fun showProductFound(product: ProductModel) {
         binding.tvLastScan.text    = product.barcode
         binding.tvProductInfo.text = product.name
@@ -108,26 +127,32 @@ class ScannerFragment : Fragment() {
         binding.scanLine.setBackgroundColor(
             ContextCompat.getColor(requireContext(), R.color.brand_primary)
         )
-
         vibrate()
-        scheduleReset()
-    }
 
-    private fun scheduleReset() {
+        // 1.5s sonra ConfirmProduct ekranına keç
         binding.root.postDelayed({
             if (isAdded) {
-                isScanning = true
-                viewModel.resetState()
-                resetScanLine()
+                navigateToConfirm(product.barcode)
             }
-        }, 2500)
+        }, 1500)
     }
 
-    private fun resetScanLine() {
-        binding.scanLine.background =
-            ContextCompat.getDrawable(requireContext(), R.drawable.bg_scan_line)
+    // ── CONFIRM PRODUCT EKRANINA KEÇ ─────────────────────
+    private fun navigateToConfirm(barcode: String) {
+        try {
+            val bundle = Bundle().apply {
+                putString("barcode", barcode.ifEmpty { "MANUAL" })
+            }
+            findNavController().navigate(
+                R.id.action_scannerFragment_to_confirmProductFragment,
+                bundle
+            )
+        } catch (e: Exception) {
+            android.util.Log.e("SCANNER", "Navigate error", e)
+        }
     }
 
+    // ── KAMERA İCAZƏSİ ────────────────────────────────────
     private fun checkCameraPermission() {
         when {
             ContextCompat.checkSelfPermission(
@@ -137,6 +162,7 @@ class ScannerFragment : Fragment() {
         }
     }
 
+    // ── KAMERA BAŞLAT ─────────────────────────────────────
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
         cameraProviderFuture.addListener({
@@ -176,6 +202,7 @@ class ScannerFragment : Fragment() {
         }, ContextCompat.getMainExecutor(requireContext()))
     }
 
+    // ── SCAN LINE ANİMASİYA ───────────────────────────────
     private fun startScanLineAnimation() {
         binding.scanBox.post {
             val boxHeight = binding.scanBox.height.toFloat()
@@ -191,7 +218,10 @@ class ScannerFragment : Fragment() {
         }
     }
 
+    // ── DÜYMƏLƏR ──────────────────────────────────────────
     private fun setupClickListeners() {
+
+        // Flashlight
         binding.btnFlashlight.setOnClickListener {
             isFlashOn = !isFlashOn
             camera?.cameraControl?.enableTorch(isFlashOn)
@@ -204,15 +234,18 @@ class ScannerFragment : Fragment() {
             )
         }
 
+        // Manual Entry
         binding.btnManualEntry.setOnClickListener {
             showManualEntryDialog()
         }
 
+        // Cancel
         binding.btnCancel.setOnClickListener {
             findNavController().popBackStack()
         }
     }
 
+    // ── MANUAL GİRİŞ — ConfirmProduct-a keç ──────────────
     private fun showManualEntryDialog() {
         val editText = EditText(requireContext()).apply {
             hint      = "Barkodu daxil edin"
@@ -223,31 +256,33 @@ class ScannerFragment : Fragment() {
         AlertDialog.Builder(requireContext())
             .setTitle("Manual Barkod Girişi")
             .setView(editText)
-            .setPositiveButton("Axtar") { _, _ ->
+            .setPositiveButton("Davam et") { _, _ ->
                 val input = editText.text.toString().trim()
                 if (input.isNotEmpty()) {
-                    isScanning = false
-                    binding.tvLastScan.text = input
-                    viewModel.searchBarcode(input)
+                    // Birbaşa ConfirmProduct-a keç — API-yə ConfirmProduct özü müraciət edir
+                    navigateToConfirm(input)
                 }
             }
             .setNegativeButton("Ləğv et", null)
             .show()
     }
 
+    // ── VİBRASİYA ─────────────────────────────────────────
     private fun vibrate() {
         try {
-            val vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                val vibratorManager = requireContext().getSystemService(
+            val vibrator = if (android.os.Build.VERSION.SDK_INT >=
+                android.os.Build.VERSION_CODES.S) {
+                val vm = requireContext().getSystemService(
                     android.os.VibratorManager::class.java
                 )
-                vibratorManager?.defaultVibrator
+                vm?.defaultVibrator
             } else {
                 @Suppress("DEPRECATION")
                 requireContext().getSystemService(android.os.Vibrator::class.java)
             }
 
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            if (android.os.Build.VERSION.SDK_INT >=
+                android.os.Build.VERSION_CODES.O) {
                 vibrator?.vibrate(
                     android.os.VibrationEffect.createOneShot(
                         100L,
@@ -263,6 +298,12 @@ class ScannerFragment : Fragment() {
         }
     }
 
+    private fun resetScanLine() {
+        binding.scanLine.background =
+            ContextCompat.getDrawable(requireContext(), R.drawable.bg_scan_line)
+    }
+
+    // ── BARCODE ANALYZER ─────────────────────────────────
     inner class BarcodeAnalyzer(
         private val onResult: (String) -> Unit
     ) : ImageAnalysis.Analyzer {

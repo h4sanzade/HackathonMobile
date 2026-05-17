@@ -6,13 +6,11 @@ import retrofit2.http.*
 
 interface ApiService {
 
-    // ── AUTH ──────────────────────────────────────────────
     @POST("api/auth/login")
     suspend fun login(
         @Body request: LoginRequestDto
     ): Response<LoginResponseDto>
 
-    // ── PRODUCTS ──────────────────────────────────────────
     @GET("api/products/barcode/{barcode}")
     suspend fun getProductByBarcode(
         @Path("barcode") barcode: String
@@ -34,7 +32,6 @@ interface ApiService {
         @Body request: AddBatchRequestDto
     ): Response<String>
 
-    // ── REMINDERS ─────────────────────────────────────────
     @GET("api/reminders/active")
     suspend fun getActiveReminders(
         @Query("store") store: String,
@@ -51,12 +48,11 @@ interface ApiService {
         @Query("token") token: String
     ): Response<String>
 
-    // ── WASTE ─────────────────────────────────────────────
     @POST("api/waste/log")
     suspend fun logWaste(
         @Body request: WasteLogRequestDto
-    ): Response<String>
-    // ── AI ────────────────────────────────────────────────
+    ): Response<WasteLogResponseDto>
+
     @GET("api/ai/analyze")
     suspend fun getAiAnalysis(): Response<AiAnalysisDto>
 }

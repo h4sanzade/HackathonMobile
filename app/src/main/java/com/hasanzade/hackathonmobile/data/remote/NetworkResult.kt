@@ -20,9 +20,8 @@ suspend fun <T> safeApiCall(
                 if (body != null) {
                     NetworkResult.Success(body)
                 } else {
-                    // 200 OK amma body null — bəzi POST-lar belə qaytarır
                     @Suppress("UNCHECKED_CAST")
-                    NetworkResult.Success(Unit as T)
+                    NetworkResult.Success("" as T)
                 }
             }
             response.code() == 401 ->

@@ -17,7 +17,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- HEADER -->
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -74,10 +73,8 @@
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintBottom_toBottomOf="parent" />
-
             </androidx.constraintlayout.widget.ConstraintLayout>
 
-            <!-- DIVIDER -->
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
@@ -91,7 +88,6 @@
                 android:paddingEnd="20dp"
                 android:paddingTop="20dp">
 
-                <!-- PRODUCT SELECTION -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -101,7 +97,6 @@
                     android:textStyle="bold"
                     android:layout_marginBottom="10dp" />
 
-                <!-- Search bar -->
                 <androidx.cardview.widget.CardView
                     android:id="@+id/card_search"
                     android:layout_width="match_parent"
@@ -130,7 +125,7 @@
                             android:id="@+id/et_search"
                             android:layout_width="0dp"
                             android:layout_height="match_parent"
-                            android:hint="Search product name or barcode..."
+                            android:hint="Search by product name or barcode..."
                             android:textColorHint="@color/text_hint"
                             android:textColor="@color/text_primary"
                             android:textSize="14sp"
@@ -143,11 +138,9 @@
                             app:layout_constraintBottom_toBottomOf="parent"
                             app:layout_constraintStart_toEndOf="@id/iv_search_icon"
                             app:layout_constraintEnd_toEndOf="parent" />
-
                     </androidx.constraintlayout.widget.ConstraintLayout>
                 </androidx.cardview.widget.CardView>
 
-                <!-- Selected product card -->
                 <androidx.cardview.widget.CardView
                     android:id="@+id/card_selected_product"
                     android:layout_width="match_parent"
@@ -163,7 +156,6 @@
                         android:layout_height="wrap_content"
                         android:padding="14dp">
 
-                        <!-- Product icon -->
                         <androidx.cardview.widget.CardView
                             android:id="@+id/card_product_icon"
                             android:layout_width="44dp"
@@ -182,7 +174,6 @@
                                 android:src="@android:drawable/ic_menu_gallery" />
                         </androidx.cardview.widget.CardView>
 
-                        <!-- Product info -->
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
@@ -212,7 +203,6 @@
                                 android:layout_marginTop="2dp" />
                         </LinearLayout>
 
-                        <!-- Check icon -->
                         <ImageView
                             android:id="@+id/iv_check"
                             android:layout_width="24dp"
@@ -222,11 +212,9 @@
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintEnd_toEndOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent" />
-
                     </androidx.constraintlayout.widget.ConstraintLayout>
                 </androidx.cardview.widget.CardView>
 
-                <!-- Search results dropdown -->
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rv_search_results"
                     android:layout_width="match_parent"
@@ -235,7 +223,6 @@
                     android:visibility="gone"
                     android:nestedScrollingEnabled="false" />
 
-                <!-- QUANTITY -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -251,7 +238,6 @@
                     android:orientation="horizontal"
                     android:layout_marginBottom="20dp">
 
-                    <!-- Quantity input -->
                     <androidx.cardview.widget.CardView
                         android:layout_width="0dp"
                         android:layout_height="56dp"
@@ -275,7 +261,6 @@
                             android:padding="12dp" />
                     </androidx.cardview.widget.CardView>
 
-                    <!-- Unit selector -->
                     <androidx.cardview.widget.CardView
                         android:layout_width="0dp"
                         android:layout_height="56dp"
@@ -325,10 +310,8 @@
                                 android:textColor="@color/text_secondary" />
                         </LinearLayout>
                     </androidx.cardview.widget.CardView>
-
                 </LinearLayout>
 
-                <!-- REASON FOR WASTE -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -344,7 +327,6 @@
                     android:orientation="vertical"
                     android:layout_marginBottom="20dp">
 
-                    <!-- Row 1 -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -360,19 +342,16 @@
                             app:cardCornerRadius="12dp"
                             app:cardElevation="0dp"
                             app:cardBackgroundColor="@color/surface_card">
-
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent"
                                 android:gravity="center"
                                 android:orientation="horizontal">
-
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="📅 "
                                     android:textSize="14sp" />
-
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
@@ -391,19 +370,16 @@
                             app:cardCornerRadius="12dp"
                             app:cardElevation="0dp"
                             app:cardBackgroundColor="@color/surface_card">
-
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent"
                                 android:gravity="center"
                                 android:orientation="horizontal">
-
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="◇ "
                                     android:textSize="14sp" />
-
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
@@ -413,10 +389,8 @@
                                     android:textStyle="bold" />
                             </LinearLayout>
                         </androidx.cardview.widget.CardView>
-
                     </LinearLayout>
 
-                    <!-- Row 2 -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -432,19 +406,16 @@
                             app:cardCornerRadius="12dp"
                             app:cardElevation="0dp"
                             app:cardBackgroundColor="@color/surface_card">
-
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent"
                                 android:gravity="center"
                                 android:orientation="horizontal">
-
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="♻ "
                                     android:textSize="14sp" />
-
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
@@ -463,19 +434,16 @@
                             app:cardCornerRadius="12dp"
                             app:cardElevation="0dp"
                             app:cardBackgroundColor="@color/surface_card">
-
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="match_parent"
                                 android:gravity="center"
                                 android:orientation="horizontal">
-
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:text="⬆ "
                                     android:textSize="14sp" />
-
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
@@ -485,10 +453,8 @@
                                     android:textStyle="bold" />
                             </LinearLayout>
                         </androidx.cardview.widget.CardView>
-
                     </LinearLayout>
 
-                    <!-- Row 3 -->
                     <androidx.cardview.widget.CardView
                         android:id="@+id/btn_reason_other"
                         android:layout_width="match_parent"
@@ -496,19 +462,16 @@
                         app:cardCornerRadius="12dp"
                         app:cardElevation="0dp"
                         app:cardBackgroundColor="@color/surface_card">
-
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:gravity="center"
                             android:orientation="horizontal">
-
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="··· "
                                 android:textSize="14sp" />
-
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
@@ -518,10 +481,8 @@
                                 android:textStyle="bold" />
                         </LinearLayout>
                     </androidx.cardview.widget.CardView>
-
                 </LinearLayout>
 
-                <!-- DATE & TIME -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -575,11 +536,9 @@
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent"
                             app:layout_constraintEnd_toEndOf="parent" />
-
                     </androidx.constraintlayout.widget.ConstraintLayout>
                 </androidx.cardview.widget.CardView>
 
-                <!-- NOTES -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -612,7 +571,6 @@
                         android:minLines="3" />
                 </androidx.cardview.widget.CardView>
 
-                <!-- ESTIMATED LOSS CARD -->
                 <androidx.cardview.widget.CardView
                     android:id="@+id/card_estimated_loss"
                     android:layout_width="match_parent"
@@ -628,7 +586,6 @@
                         android:layout_height="wrap_content"
                         android:padding="16dp">
 
-                        <!-- Red icon -->
                         <androidx.cardview.widget.CardView
                             android:id="@+id/card_loss_icon"
                             android:layout_width="40dp"
@@ -639,7 +596,6 @@
                             app:layout_constraintTop_toTopOf="parent"
                             app:layout_constraintStart_toStartOf="parent"
                             app:layout_constraintBottom_toBottomOf="parent">
-
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
@@ -650,7 +606,6 @@
                                 android:textStyle="bold" />
                         </androidx.cardview.widget.CardView>
 
-                        <!-- Loss info -->
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
@@ -682,7 +637,6 @@
                                 android:layout_marginTop="2dp" />
                         </LinearLayout>
 
-                        <!-- Unit price -->
                         <LinearLayout
                             android:id="@+id/ll_unit_price"
                             android:layout_width="wrap_content"
@@ -696,7 +650,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Unit Price"
+                                android:text="UNIT PRICE"
                                 android:textColor="@color/text_secondary"
                                 android:textSize="10sp"
                                 android:textStyle="bold"
@@ -713,7 +667,6 @@
                                 android:textStyle="bold"
                                 android:layout_marginTop="2dp" />
                         </LinearLayout>
-
                     </androidx.constraintlayout.widget.ConstraintLayout>
                 </androidx.cardview.widget.CardView>
 
@@ -721,7 +674,6 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- CONFIRM BUTTON -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_confirm_log"
         android:layout_width="match_parent"

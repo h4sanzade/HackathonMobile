@@ -17,7 +17,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- HEADER -->
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -61,7 +60,6 @@
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintBottom_toBottomOf="parent" />
-
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <LinearLayout
@@ -72,7 +70,6 @@
                 android:paddingEnd="20dp"
                 android:paddingTop="8dp">
 
-                <!-- BARCODE SCANNED BADGE -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -92,7 +89,6 @@
                         android:paddingVertical="8dp" />
                 </LinearLayout>
 
-                <!-- FORM CARD -->
                 <androidx.cardview.widget.CardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -107,7 +103,6 @@
                         android:orientation="vertical"
                         android:padding="16dp">
 
-                        <!-- Product Name -->
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -144,7 +139,6 @@
                                 android:singleLine="true" />
                         </com.google.android.material.textfield.TextInputLayout>
 
-                        <!-- Quantity -->
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -180,7 +174,6 @@
                                 android:singleLine="true" />
                         </com.google.android.material.textfield.TextInputLayout>
 
-                        <!-- Category -->
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -225,11 +218,9 @@
                                     app:layout_constraintTop_toTopOf="parent"
                                     app:layout_constraintBottom_toBottomOf="parent"
                                     app:layout_constraintEnd_toEndOf="parent" />
-
                             </androidx.constraintlayout.widget.ConstraintLayout>
                         </androidx.cardview.widget.CardView>
 
-                        <!-- Arrival Date -->
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -258,7 +249,7 @@
                                     android:id="@+id/tv_arrival_date"
                                     android:layout_width="0dp"
                                     android:layout_height="wrap_content"
-                                    android:text="gg.aa.yyyy"
+                                    android:text="dd.mm.yyyy"
                                     android:textColor="@color/text_hint"
                                     android:textSize="14sp"
                                     app:layout_constraintTop_toTopOf="parent"
@@ -274,11 +265,9 @@
                                     app:layout_constraintTop_toTopOf="parent"
                                     app:layout_constraintBottom_toBottomOf="parent"
                                     app:layout_constraintEnd_toEndOf="parent" />
-
                             </androidx.constraintlayout.widget.ConstraintLayout>
                         </androidx.cardview.widget.CardView>
 
-                        <!-- Shelf Removal Date -->
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -307,7 +296,7 @@
                                     android:id="@+id/tv_removal_date"
                                     android:layout_width="0dp"
                                     android:layout_height="wrap_content"
-                                    android:text="gg.aa.yyyy"
+                                    android:text="dd.mm.yyyy"
                                     android:textColor="@color/text_hint"
                                     android:textSize="14sp"
                                     app:layout_constraintTop_toTopOf="parent"
@@ -323,11 +312,9 @@
                                     app:layout_constraintTop_toTopOf="parent"
                                     app:layout_constraintBottom_toBottomOf="parent"
                                     app:layout_constraintEnd_toEndOf="parent" />
-
                             </androidx.constraintlayout.widget.ConstraintLayout>
                         </androidx.cardview.widget.CardView>
 
-                        <!-- Expiry Date -->
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -356,7 +343,7 @@
                                     android:id="@+id/tv_expiry_date"
                                     android:layout_width="0dp"
                                     android:layout_height="wrap_content"
-                                    android:text="gg.aa.yyyy"
+                                    android:text="dd.mm.yyyy"
                                     android:textColor="@color/error"
                                     android:textSize="14sp"
                                     app:layout_constraintTop_toTopOf="parent"
@@ -372,11 +359,9 @@
                                     app:layout_constraintTop_toTopOf="parent"
                                     app:layout_constraintBottom_toBottomOf="parent"
                                     app:layout_constraintEnd_toEndOf="parent" />
-
                             </androidx.constraintlayout.widget.ConstraintLayout>
                         </androidx.cardview.widget.CardView>
 
-                        <!-- Info note -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -403,7 +388,6 @@
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
-                <!-- PRODUCT IMAGE PLACEHOLDER -->
                 <androidx.cardview.widget.CardView
                     android:layout_width="match_parent"
                     android:layout_height="180dp"
@@ -418,7 +402,6 @@
                         android:orientation="vertical"
                         android:gravity="center">
 
-
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -427,7 +410,6 @@
                             android:textSize="13sp"
                             android:gravity="center"
                             android:layout_marginTop="12dp" />
-
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>
 
@@ -435,7 +417,6 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- BOTTOM BUTTONS -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -471,7 +452,6 @@
             android:textColor="@color/white"
             app:backgroundTint="@color/brand_primary"
             app:cornerRadius="14dp" />
-
     </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

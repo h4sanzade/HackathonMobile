@@ -105,6 +105,12 @@
             app:destination="@id/profileFragment"
             app:enterAnim="@anim/slide_in_right"
             app:exitAnim="@anim/fade_out" />
+
+        <action
+            android:id="@+id/action_departmentDashboard_to_batchListFragment"
+            app:destination="@id/batchListFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/fade_out" />
     </fragment>
 
     <fragment
@@ -193,6 +199,21 @@
             app:enterAnim="@anim/fade_in"
             app:exitAnim="@anim/fade_out"
             app:popUpTo="@id/nav_graph"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/batchListFragment"
+        android:name="com.hasanzade.hackathonmobile.BatchListFragment"
+        android:label="Batch List"
+        tools:layout="@layout/fragment_batch_list">
+
+        <action
+            android:id="@+id/action_batchList_to_dashboard"
+            app:destination="@id/departmentDashboardFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popUpTo="@id/batchListFragment"
             app:popUpToInclusive="true" />
     </fragment>
 

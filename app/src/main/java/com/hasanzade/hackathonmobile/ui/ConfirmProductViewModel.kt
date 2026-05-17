@@ -7,8 +7,8 @@ import com.hasanzade.hackathonmobile.data.remote.NetworkResult
 import com.hasanzade.hackathonmobile.data.remote.api.ApiService
 import com.hasanzade.hackathonmobile.data.remote.dto.AddBatchRequestDto
 import com.hasanzade.hackathonmobile.data.remote.dto.CreateProductRequestDto
-import com.hasanzade.hackathonmobile.data.remote.dto.ProductDto
 import com.hasanzade.hackathonmobile.data.remote.safeApiCall
+import com.hasanzade.hackathonmobile.data.repository.BatchRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,22 +24,23 @@ sealed class ConfirmProductUiState {
 }
 
 data class ScannedProductState(
-    val barcode: String       = "",
-    val productName: String   = "",
-    val category: String      = "",
-    val departmentId: Long    = 0L,
-    val unit: String          = "ədəd",
-    val sellPrice: Double     = 0.0,
-    val costPrice: Double     = 0.0,
-    val productId: Long?      = null,   // backend-dən gəlir
-    val isLoading: Boolean    = true,
-    val error: String?        = null
+    val barcode: String    = "",
+    val productName: String = "",
+    val category: String   = "",
+    val departmentId: Long = 0L,
+    val unit: String       = "ədəd",
+    val sellPrice: Double  = 0.0,
+    val costPrice: Double  = 0.0,
+    val productId: Long?   = null,
+    val isLoading: Boolean = true,
+    val error: String?     = null
 )
 
 @HiltViewModel
 class ConfirmProductViewModel @Inject constructor(
     private val api: ApiService,
-    private val tokenDataStore: TokenDataStore
+    private val tokenDataStore: TokenDataStore,
+    private val batchRepository: BatchRepository
 ) : ViewModel() {
 
     private val _productState = MutableStateFlow(ScannedProductState())
@@ -47,10 +48,6 @@ class ConfirmProductViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow<ConfirmProductUiState>(ConfirmProductUiState.Idle)
     val uiState: StateFlow<ConfirmProductUiState> = _uiState
-
-    // Saxlanmış məhsulların siyahısı — tracking üçün
-    private val _savedProducts = MutableStateFlow<List<SavedProductEntry>>(emptyList())
-    val savedProducts: StateFlow<List<SavedProductEntry>> = _savedProducts
 
     private var currentFilial     = ""
     private var currentDepartment = ""
@@ -67,7 +64,6 @@ class ConfirmProductViewModel @Inject constructor(
         }
     }
 
-    // Barkod scan olduqda çağır — məhsulu API-dən çək
     fun loadProductByBarcode(barcode: String) {
         viewModelScope.launch {
             _productState.value = ScannedProductState(
@@ -75,9 +71,7 @@ class ConfirmProductViewModel @Inject constructor(
                 isLoading = true
             )
 
-            when (val result = safeApiCall {
-                api.getProductByBarcode(barcode)
-            }) {
+            when (val result = safeApiCall { api.getProductByBarcode(barcode) }) {
                 is NetworkResult.Success -> {
                     val dto = result.data
                     _productState.value = ScannedProductState(
@@ -94,21 +88,17 @@ class ConfirmProductViewModel @Inject constructor(
                     currentDeptId = dto.departmentId ?: 0L
                 }
                 is NetworkResult.Error -> {
-                    // Məhsul tapılmadı — formu boş aç, user doldursun
                     _productState.value = ScannedProductState(
                         barcode   = barcode,
                         isLoading = false,
-                        error     = null // xəta göstərmə, boş form aç
+                        error     = null
                     )
-                    android.util.Log.d("CONFIRM",
-                        "Product not found for barcode: $barcode — opening empty form")
                 }
                 else -> Unit
             }
         }
     }
 
-    // Save Product — məhsul + batch saxla
     fun saveProduct(
         productName: String,
         quantity: Double,
@@ -123,7 +113,6 @@ class ConfirmProductViewModel @Inject constructor(
 
             val state = _productState.value
 
-            // Validasiya
             if (productName.isBlank()) {
                 _uiState.value = ConfirmProductUiState.Error("Məhsul adı boş ola bilməz")
                 return@launch
@@ -134,7 +123,6 @@ class ConfirmProductViewModel @Inject constructor(
             }
 
             try {
-                // Məhsul ID-si yoxdursa — yeni məhsul yarat
                 val productId = if (state.productId != null) {
                     state.productId
                 } else {
@@ -144,14 +132,11 @@ class ConfirmProductViewModel @Inject constructor(
                         category     = category,
                         departmentId = currentDeptId
                     ) ?: run {
-                        _uiState.value = ConfirmProductUiState.Error(
-                            "Məhsul yaradıla bilmədi"
-                        )
+                        _uiState.value = ConfirmProductUiState.Error("Məhsul yaradıla bilmədi")
                         return@launch
                     }
                 }
 
-                // Batch əlavə et
                 val userId = tokenDataStore.getUserId() ?: ""
                 val batchResult = safeApiCall {
                     api.addBatch(
@@ -167,22 +152,23 @@ class ConfirmProductViewModel @Inject constructor(
 
                 when (batchResult) {
                     is NetworkResult.Success -> {
-                        val batchCode = batchResult.data
+                        val batchCode = batchResult.data ?: "--"
 
-                        // Tracking listinə əlavə et
-                        val entry = SavedProductEntry(
-                            productName  = productName,
-                            barcode      = state.barcode,
-                            quantity     = quantity,
-                            batchCode    = batchCode ?: "--",
-                            arrivalDate  = arrivalDate,
-                            removalDate  = removalDate,
-                            category     = category
+                        // BatchRepository-ə əlavə et — BatchListFragment oxuyacaq
+                        batchRepository.addBatch(
+                            SavedProductEntry(
+                                productName  = productName,
+                                barcode      = state.barcode,
+                                quantity     = quantity,
+                                batchCode    = batchCode,
+                                arrivalDate  = arrivalDate,
+                                removalDate  = removalDate,
+                                expiryDate   = expiryDate,
+                                category     = category,
+                                sellPrice    = state.sellPrice,
+                                unit         = state.unit
+                            )
                         )
-                        _savedProducts.value = _savedProducts.value + entry
-
-                        android.util.Log.d("CONFIRM",
-                            "Saved: $productName batch=$batchCode")
 
                         _uiState.value = if (scanNext)
                             ConfirmProductUiState.SavedAndScanNext
@@ -246,15 +232,3 @@ class ConfirmProductViewModel @Inject constructor(
         _uiState.value = ConfirmProductUiState.Idle
     }
 }
-
-data class SavedProductEntry(
-    val productName: String,
-    val barcode: String,
-    val quantity: Double,
-    val batchCode: String,
-    val arrivalDate: String,
-    val removalDate: String,
-    val category: String,
-    val savedAt: String = java.time.LocalDateTime.now()
-        .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
-)

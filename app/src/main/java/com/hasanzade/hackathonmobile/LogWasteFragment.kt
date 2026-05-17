@@ -82,7 +82,7 @@ class LogWasteFragment : Fragment() {
             findNavController().popBackStack()
         }
 
-        // Search
+
         binding.etSearch.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
                 val query = s?.toString() ?: ""
@@ -175,17 +175,20 @@ class LogWasteFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.filteredList.collect { list ->
                 searchAdapter.submitList(list)
+                val query = binding.etSearch.text?.toString() ?: ""
                 binding.rvSearchResults.visibility =
-                    if (list.isNotEmpty() &&
-                        binding.etSearch.text?.isNotEmpty() == true)
-                        View.VISIBLE else View.GONE
+                    if (list.isNotEmpty() && query.isNotEmpty()) View.VISIBLE
+                    else View.GONE
             }
         }
-
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.selectedProduct.collect { product ->
-                if (product != null) showSelectedProduct(product)
-                else {
+                if (product != null) {
+                    showSelectedProduct(product)
+
+                    binding.etSearch.setText("")
+                    binding.rvSearchResults.visibility = View.GONE
+                } else {
                     binding.cardSelectedProduct.visibility = View.GONE
                     binding.cardEstimatedLoss.visibility   = View.GONE
                 }

@@ -5,13 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.hasanzade.hackathonmobile.data.local.TokenDataStore
 import com.hasanzade.hackathonmobile.data.remote.NetworkResult
 import com.hasanzade.hackathonmobile.data.remote.api.ApiService
-import com.hasanzade.hackathonmobile.data.remote.dto.AddBatchRequestDto
 import com.hasanzade.hackathonmobile.data.remote.dto.StockDto
 import com.hasanzade.hackathonmobile.data.remote.dto.WasteLogRequestDto
 import com.hasanzade.hackathonmobile.data.remote.safeApiCall
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -22,14 +21,12 @@ sealed class LogWasteUiState {
     data class Error(val msg: String) : LogWasteUiState()
 }
 
+@OptIn(FlowPreview::class)
 @HiltViewModel
 class LogWasteViewModel @Inject constructor(
     private val api: ApiService,
     private val tokenDataStore: TokenDataStore
 ) : ViewModel() {
-
-    private val _stockList    = MutableStateFlow<List<StockDto>>(emptyList())
-    val stockList: StateFlow<List<StockDto>> = _stockList
 
     private val _filteredList = MutableStateFlow<List<StockDto>>(emptyList())
     val filteredList: StateFlow<List<StockDto>> = _filteredList
@@ -49,185 +46,265 @@ class LogWasteViewModel @Inject constructor(
     private val _barcodeLoading = MutableStateFlow(false)
     val barcodeLoading: StateFlow<Boolean> = _barcodeLoading
 
+    private val _searchQuery = MutableStateFlow("")
+
+    private var fullStockList: List<StockDto> = emptyList()
+
+    // Bütün reminder-ları cache-lə — batchId axtarmaq üçün
+    private var cachedReminders: List<com.hasanzade.hackathonmobile.data.remote.dto.ReminderDto> =
+        emptyList()
+
     private var currentFilial     = ""
     private var currentDepartment = ""
 
-    // Bütün stock listini saxla — batchId tapmaq üçün
-    private var fullStockList: List<StockDto> = emptyList()
-
     init {
         loadSession()
+        observeSearch()
     }
 
     private fun loadSession() {
         viewModelScope.launch {
-            val dept   = tokenDataStore.getDepartment() ?: ""
-            val filial = tokenDataStore.getFilial() ?: ""
-            currentDepartment = dept
-            currentFilial     = filial
-            _sectorName.value = dept.ifEmpty { "--" }
-            if (filial.isNotEmpty() && dept.isNotEmpty()) {
-                loadStock(filial, dept)
+            currentDepartment = tokenDataStore.getDepartment() ?: ""
+            currentFilial     = tokenDataStore.getFilial() ?: ""
+            _sectorName.value = currentDepartment.ifEmpty { "--" }
+            if (currentFilial.isNotEmpty()) {
+                loadStockAndReminders()
             }
         }
     }
 
-    private fun loadStock(store: String, department: String) {
-        viewModelScope.launch {
-            when (val result = safeApiCall { api.getStock(store, department) }) {
-                is NetworkResult.Success -> {
-                    fullStockList       = result.data
-                    _stockList.value    = result.data
-                    _filteredList.value = result.data
-                }
-                else -> Unit
-            }
-        }
-    }
-
-    fun searchProduct(query: String) {
-        if (query.isBlank()) {
-            _filteredList.value = fullStockList
-            return
-        }
-        val localResults = fullStockList.filter { stock ->
-            stock.productName?.contains(query, ignoreCase = true) == true ||
-                    stock.barcode?.contains(query, ignoreCase = true) == true
-        }
-        if (localResults.isNotEmpty()) {
-            _filteredList.value = localResults
-        } else {
-            if (query.length >= 5) fetchProductByBarcode(query)
-        }
-    }
-
-    // Barkodla axtarış — stock-da yoxdursa API-yə get
-    fun fetchProductByBarcode(barcode: String) {
+    // Stock və reminder-ları eyni vaxtda yüklə
+    private fun loadStockAndReminders() {
         viewModelScope.launch {
             _barcodeLoading.value = true
 
-            // Əvvəlcə stock listindən batchId tap
-            val stockItem = fullStockList.find {
-                it.barcode?.equals(barcode, ignoreCase = true) == true
+            // Stock yüklə
+            if (currentDepartment.isNotEmpty()) {
+                when (val result = safeApiCall {
+                    api.getStock(currentFilial, currentDepartment)
+                }) {
+                    is NetworkResult.Success -> {
+                        fullStockList       = result.data
+                        _filteredList.value = result.data
+                        android.util.Log.d("LOG_WASTE",
+                            "Stock loaded: ${result.data.size} items")
+                        result.data.forEach {
+                            android.util.Log.d("LOG_WASTE",
+                                "  stock: id=${it.productId} " +
+                                        "name=${it.productName} " +
+                                        "barcode=${it.barcode} " +
+                                        "qty=${it.totalStock}")
+                        }
+                    }
+                    is NetworkResult.Error ->
+                        android.util.Log.e("LOG_WASTE", "Stock err: ${result.message}")
+                    else -> Unit
+                }
             }
 
+            // Reminder-ları yüklə və cache-lə
             when (val result = safeApiCall {
-                api.getProductByBarcode(barcode.trim())
+                api.getActiveReminders(
+                    store      = currentFilial,
+                    department = currentDepartment.ifEmpty { null }
+                )
             }) {
                 is NetworkResult.Success -> {
-                    val dto = result.data
-
-                    // Stock-dan batchId tap — reminders endpoint-dən gəlir
-                    val batchId = fetchBatchIdForProduct(
-                        productId = dto.id ?: 0L,
-                        barcode   = barcode
-                    )
-
-                    val info = SelectedProductInfo(
-                        productId   = dto.id ?: 0L,
-                        productName = dto.name ?: "--",
-                        barcode     = dto.barcode ?: barcode,
-                        totalStock  = stockItem?.totalStock ?: 0.0,
-                        sellPrice   = dto.sellPrice ?: 0.0,
-                        unit        = dto.unit ?: "ədəd",
-                        batchId     = batchId
-                    )
-
+                    cachedReminders = result.data
                     android.util.Log.d("LOG_WASTE",
-                        "Product: ${info.productName} batchId=${info.batchId}")
-
-                    _selectedProduct.value = info
-                    _filteredList.value    = emptyList()
-                    calculateLoss(1.0, info.sellPrice)
+                        "Reminders loaded: ${result.data.size} items")
+                    result.data.forEach {
+                        android.util.Log.d("LOG_WASTE",
+                            "  reminder: batchId=${it.batchId} " +
+                                    "batchCode=${it.batchCode} " +
+                                    "product=${it.productName} " +
+                                    "qty=${it.quantity} " +
+                                    "daysLeft=${it.daysLeft}")
+                    }
                 }
-                is NetworkResult.Error -> {
-                    _filteredList.value = emptyList()
+                is NetworkResult.Error ->
                     android.util.Log.e("LOG_WASTE",
-                        "Barcode not found: $barcode")
-                }
+                        "Reminders err: ${result.message}")
                 else -> Unit
             }
+
             _barcodeLoading.value = false
         }
     }
 
-    // Məhsulun aktiv batch-ını tap
-    private suspend fun fetchBatchIdForProduct(
-        productId: Long,
-        barcode: String
-    ): Long? {
-        return try {
-            // Reminders-dən batchId tap
-            val store = currentFilial
-            val dept  = currentDepartment
+    private fun observeSearch() {
+        viewModelScope.launch {
+            _searchQuery
+                .debounce(250)
+                .distinctUntilChanged()
+                .collect { query -> performSearch(query) }
+        }
+    }
 
-            if (store.isEmpty()) return null
+    fun searchProduct(query: String) {
+        _searchQuery.value = query
+    }
 
+    private suspend fun performSearch(query: String) {
+        if (query.isBlank()) {
+            _filteredList.value = fullStockList
+            return
+        }
+
+        // Local axtarış — ad, barcode, kateqoriya
+        val local = fullStockList.filter { s ->
+            s.productName?.contains(query, ignoreCase = true) == true ||
+                    s.barcode?.contains(query, ignoreCase = true) == true ||
+                    s.category?.contains(query, ignoreCase = true) == true
+        }
+
+        if (local.isNotEmpty()) {
+            _filteredList.value = local
+            return
+        }
+
+        // Barcode ilə API axtarışı
+        if (query.length >= 3) {
+            _barcodeLoading.value = true
             when (val result = safeApiCall {
-                api.getActiveReminders(
-                    store      = store,
-                    department = dept.ifEmpty { null }
-                )
+                api.getProductByBarcode(query.trim())
             }) {
                 is NetworkResult.Success -> {
-                    val reminder = result.data.find { r ->
-                        // Barcode ilə uyğun reminder tap
-                        r.batchCode?.contains(
-                            productId.toString(), ignoreCase = true
-                        ) == true
-                    }
-                    val batchId = reminder?.batchId
-                    android.util.Log.d("LOG_WASTE",
-                        "Found batchId=$batchId for productId=$productId")
-                    batchId
+                    val dto = result.data
+                    _filteredList.value = listOf(
+                        StockDto(
+                            productId          = dto.id,
+                            productName        = dto.name,
+                            barcode            = dto.barcode,
+                            category           = dto.category,
+                            departmentName     = dto.departmentName,
+                            totalStock         = 0.0,
+                            batchCount         = 0,
+                            nearestRemovalDate = null
+                        )
+                    )
                 }
-                else -> null
+                else -> _filteredList.value = emptyList()
             }
-        } catch (e: Exception) {
-            android.util.Log.e("LOG_WASTE", "fetchBatchId error", e)
-            null
+            _barcodeLoading.value = false
+        } else {
+            _filteredList.value = emptyList()
         }
     }
 
     fun selectProductFromStock(product: StockDto) {
         viewModelScope.launch {
-            val barcode = product.barcode ?: ""
             _barcodeLoading.value = true
+            _filteredList.value   = emptyList()
+
+            android.util.Log.d("LOG_WASTE",
+                "Selecting: ${product.productName} " +
+                        "id=${product.productId} " +
+                        "stock=${product.totalStock}")
+
+            var sellPrice = 0.0
+            var unit      = "ədəd"
+            var productId = product.productId ?: 0L
 
             // Barcode endpoint-dən əlavə məlumat al
-            val productDto = if (barcode.isNotEmpty()) {
-                when (val result = safeApiCall {
+            val barcode = product.barcode ?: ""
+            if (barcode.isNotEmpty()) {
+                when (val res = safeApiCall {
                     api.getProductByBarcode(barcode)
                 }) {
-                    is NetworkResult.Success -> result.data
-                    else -> null
+                    is NetworkResult.Success -> {
+                        sellPrice = res.data.sellPrice ?: 0.0
+                        unit      = res.data.unit ?: "ədəd"
+                        // productId-ni təsdiqlə
+                        if (res.data.id != null) productId = res.data.id
+                        android.util.Log.d("LOG_WASTE",
+                            "Product details: sellPrice=$sellPrice " +
+                                    "unit=$unit id=$productId")
+                    }
+                    else -> Unit
                 }
-            } else null
+            }
 
-            // Bu məhsulun batchId-sini tap
-            val batchId = fetchBatchIdForProduct(
-                productId = product.productId ?: 0L,
-                barcode   = barcode
-            )
+            // Cache-dən batchId tap
+            val batchId = findBatchIdFromCache(productId, product.productName ?: "")
 
-            val info = SelectedProductInfo(
-                productId   = productDto?.id ?: product.productId ?: 0L,
-                productName = productDto?.name ?: product.productName ?: "--",
-                barcode     = productDto?.barcode ?: barcode,
+            android.util.Log.d("LOG_WASTE",
+                "Final: productId=$productId batchId=$batchId " +
+                        "stock=${product.totalStock} sellPrice=$sellPrice")
+
+            _selectedProduct.value = SelectedProductInfo(
+                productId   = productId,
+                productName = product.productName ?: "--",
+                barcode     = barcode,
                 totalStock  = product.totalStock ?: 0.0,
-                sellPrice   = productDto?.sellPrice ?: 0.0,
-                unit        = productDto?.unit ?: "ədəd",
+                sellPrice   = sellPrice,
+                unit        = unit,
                 batchId     = batchId
             )
 
-            android.util.Log.d("LOG_WASTE",
-                "Selected: ${info.productName} batchId=${info.batchId}")
-
-            _selectedProduct.value = info
-            _filteredList.value    = emptyList()
-            _barcodeLoading.value  = false
-            calculateLoss(1.0, info.sellPrice)
+            _barcodeLoading.value = false
+            calculateLoss(1.0, sellPrice)
         }
+    }
+
+    // Cache-dən batchId tap — çoxlu strategiya
+    private fun findBatchIdFromCache(productId: Long, productName: String): Long? {
+        if (cachedReminders.isEmpty()) {
+            android.util.Log.w("LOG_WASTE", "No reminders in cache!")
+            return null
+        }
+
+        // Strategiya 1: batchCode-da productId var (BC-store-productId-date)
+        val byCode = cachedReminders.find { r ->
+            val parts = r.batchCode?.split("-")
+            parts?.getOrNull(2)?.toLongOrNull() == productId
+        }
+        if (byCode != null) {
+            android.util.Log.d("LOG_WASTE",
+                "BatchId found by code: ${byCode.batchId}")
+            return byCode.batchId
+        }
+
+        // Strategiya 2: product adı tam uyğun gəlir
+        val byExactName = cachedReminders.find { r ->
+            r.productName?.trim()
+                ?.equals(productName.trim(), ignoreCase = true) == true
+        }
+        if (byExactName != null) {
+            android.util.Log.d("LOG_WASTE",
+                "BatchId found by exact name: ${byExactName.batchId}")
+            return byExactName.batchId
+        }
+
+        // Strategiya 3: product adı qismən uyğun gəlir
+        val byPartialName = cachedReminders.find { r ->
+            r.productName?.contains(productName, ignoreCase = true) == true ||
+                    productName.contains(r.productName ?: "", ignoreCase = true)
+        }
+        if (byPartialName != null) {
+            android.util.Log.d("LOG_WASTE",
+                "BatchId found by partial name: ${byPartialName.batchId}")
+            return byPartialName.batchId
+        }
+
+        // Strategiya 4: batchCode-da productId string kimi var
+        val byCodeString = cachedReminders.find { r ->
+            r.batchCode?.contains(productId.toString()) == true
+        }
+        if (byCodeString != null) {
+            android.util.Log.d("LOG_WASTE",
+                "BatchId found by code string: ${byCodeString.batchId}")
+            return byCodeString.batchId
+        }
+
+        // Heç biri tapılmadı — null qaytar, logWaste batchId-siz göndərəcək
+        android.util.Log.w("LOG_WASTE",
+            "BatchId NOT found for productId=$productId name=$productName")
+        android.util.Log.w("LOG_WASTE",
+            "Available reminders: ${cachedReminders.map {
+                "${it.productName}/${it.batchCode}/${it.batchId}"
+            }}")
+        return null
     }
 
     fun calculateLoss(quantity: Double, unitPrice: Double? = null) {
@@ -241,67 +318,81 @@ class LogWasteViewModel @Inject constructor(
             return
         }
 
-        // batchId yoxdursa yenidən cəhd et
-        if (product.batchId == null) {
-            viewModelScope.launch {
-                _logState.value = LogWasteUiState.Loading
-                val batchId = fetchBatchIdForProduct(
-                    productId = product.productId,
-                    barcode   = product.barcode
-                )
-
-                if (batchId == null) {
-                    // BatchId tapılmadı — stok yoxdur və ya aktiv batch yoxdur
-                    _logState.value = LogWasteUiState.Error(
-                        "Bu məhsul üçün aktiv batch tapılmadı. " +
-                                "Zəhmət olmasa əvvəlcə batch əlavə edin."
-                    )
-                    return@launch
-                }
-
-                // batchId tapıldı — yenilə və davam et
-                _selectedProduct.value = product.copy(batchId = batchId)
-                sendWasteLog(product.copy(batchId = batchId), quantity, reason)
-            }
+        if (quantity <= 0) {
+            _logState.value = LogWasteUiState.Error("Miqdar 0-dan böyük olmalıdır")
             return
         }
 
         viewModelScope.launch {
-            sendWasteLog(product, quantity, reason)
+            _logState.value = LogWasteUiState.Loading
+
+            // batchId yoxsa yenidən cache-dən axtar
+            val batchId = product.batchId
+                ?: findBatchIdFromCache(product.productId, product.productName)
+
+            android.util.Log.d("WASTE_LOG",
+                "Sending: productId=${product.productId} " +
+                        "batchId=$batchId qty=$quantity reason=$reason")
+
+            // batchId null olsa belə göndər — server qəbul edə bilər
+            val request = WasteLogRequestDto(
+                productId = product.productId,
+                quantity  = quantity,
+                reason    = reason,
+                batchId   = batchId  // null ola bilər
+            )
+
+            _logState.value = when (val result = safeApiCall {
+                api.logWaste(request)
+            }) {
+                is NetworkResult.Success -> {
+                    android.util.Log.d("WASTE_LOG",
+                        "Success: loss=${result.data.totalLoss}")
+                    LogWasteUiState.Success
+                }
+                is NetworkResult.Error -> {
+                    android.util.Log.e("WASTE_LOG",
+                        "Error: ${result.message} code=${result.code}")
+
+                    // Əgər batchId xətası verirsə — batchId-siz yenidən cəhd et
+                    if (result.message.contains("batch", ignoreCase = true) ||
+                        result.code == 400) {
+                        android.util.Log.d("WASTE_LOG",
+                            "Retrying without batchId...")
+                        retryWithoutBatchId(product.productId, quantity, reason)
+                    } else {
+                        LogWasteUiState.Error(result.message)
+                    }
+                }
+                else -> LogWasteUiState.Error("Xəta baş verdi")
+            }
         }
     }
 
-    private suspend fun sendWasteLog(
-        product: SelectedProductInfo,
+    private suspend fun retryWithoutBatchId(
+        productId: Long,
         quantity: Double,
         reason: String
-    ) {
-        _logState.value = LogWasteUiState.Loading
-
-        android.util.Log.d("WASTE_LOG",
-            "Sending: productId=${product.productId} " +
-                    "batchId=${product.batchId} qty=$quantity reason=$reason")
-
-        _logState.value = when (val result = safeApiCall {
+    ): LogWasteUiState {
+        return when (val result = safeApiCall {
             api.logWaste(
                 WasteLogRequestDto(
-                    productId = product.productId,
+                    productId = productId,
                     quantity  = quantity,
                     reason    = reason,
-                    batchId   = product.batchId
+                    batchId   = null
                 )
             )
         }) {
             is NetworkResult.Success -> {
-                android.util.Log.d("WASTE_LOG", "Success!")
+                android.util.Log.d("WASTE_LOG", "Retry success!")
                 LogWasteUiState.Success
             }
             is NetworkResult.Error -> {
-                android.util.Log.e("WASTE_LOG",
-                    "Error: ${result.message} code=${result.code}")
+                android.util.Log.e("WASTE_LOG", "Retry failed: ${result.message}")
                 LogWasteUiState.Error(result.message)
             }
-            else -> LogWasteUiState.Error("Xəta")
+            else -> LogWasteUiState.Error("Xəta baş verdi")
         }
     }
 }

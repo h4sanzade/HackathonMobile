@@ -90,6 +90,12 @@ class DepartmentDashboardFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
+
+        binding.cardBatches.setOnClickListener {
+            findNavController().navigate(
+                R.id.action_departmentDashboard_to_batchListFragment
+            )
+        }
         binding.cardScanBarcode.setOnClickListener {
             findNavController().navigate(
                 R.id.action_departmentDashboard_to_scannerFragment
@@ -153,24 +159,57 @@ class DepartmentDashboardFragment : Fragment() {
             if (data.storeName != "--") append(data.storeName)
             if (data.storeName != "--" && data.departmentName != "--") append(" · ")
             if (data.departmentName != "--") append(data.departmentName)
-            if (isEmpty()) append("Sector View: --")
+            if (isEmpty()) append("--")
         }
 
-        binding.tvWasteLabel.text  = "${data.departmentName.uppercase().take(12)} WASTE"
-        binding.tvWasteAmount.text = String.format("%.2f", data.wasteAmount)
-        val trendSign = if (data.wasteTrend >= 0) "↑" else "↓"
-        binding.tvWasteTrend.text  = "$trendSign ${String.format("%.1f", kotlin.math.abs(data.wasteTrend))}%"
+        // ── WASTE ─────────────────────────────────────────────
+        binding.tvWasteLabel.text = "RİSK MALLAR"
+        binding.tvWasteAmount.text = String.format("%.0f", data.wasteAmount)
 
+        val trendSign = if (data.wasteTrend >= 0) "↑" else "↓"
+        val trendAbs  = kotlin.math.abs(data.wasteTrend)
+        binding.tvWasteTrend.text = "$trendSign ${String.format("%.1f", trendAbs)}% stokdan"
+        binding.tvWasteTrend.setTextColor(
+            if (data.wasteTrend > 10)
+                requireContext().getColor(R.color.error)
+            else
+                requireContext().getColor(R.color.brand_primary)
+        )
+
+        // ── STOCK HEALTH ──────────────────────────────────────
         binding.tvStockHealthPercent.text =
             if (data.stockHealth == 0) "--%"
             else "${data.stockHealth}%"
-        binding.tvStockHealthLabel.text      = data.stockHealthLabel
+
+        binding.tvStockHealthLabel.text = data.stockHealthLabel
+
+        // Rəng: zəif=qırmızı, orta=narıncı, yaxşı=yaşıl
+        binding.tvStockHealthPercent.setTextColor(
+            when {
+                data.stockHealth < 50 -> requireContext().getColor(R.color.error)
+                data.stockHealth < 80 -> android.graphics.Color.parseColor("#D97706")
+                else                  -> requireContext().getColor(R.color.brand_primary)
+            }
+        )
         binding.progressStockHealth.progress = data.stockHealth
+        binding.progressStockHealth.progressTintList =
+            android.content.res.ColorStateList.valueOf(
+                when {
+                    data.stockHealth < 50 ->
+                        requireContext().getColor(R.color.error)
+                    data.stockHealth < 80 ->
+                        android.graphics.Color.parseColor("#D97706")
+                    else ->
+                        requireContext().getColor(R.color.brand_primary)
+                }
+            )
 
+        // ── NEEDS ATTENTION ───────────────────────────────────
         binding.tvNeedsAttention.text =
-            if (data.riskyBatches.isEmpty()) "Təhlükəsiz"
-            else "Diqqət: ${data.riskyBatches.size}"
+            if (data.riskyBatches.isEmpty()) "✓ Təhlükəsiz"
+            else "⚠ ${data.criticalCount} kritik"
 
+        // ── RISKY BATCHES ─────────────────────────────────────
         val uiModels = data.riskyBatches.map { r ->
             RiskyBatchUiModel.fromReminder(
                 productName      = r.productName,
@@ -183,7 +222,7 @@ class DepartmentDashboardFragment : Fragment() {
         }
 
         if (uiModels.isEmpty()) {
-            binding.tvBatchesPlaceholder.text       = "Aktiv batch yoxdur ✓"
+            binding.tvBatchesPlaceholder.text       = "✓ Bütün məhsullar sağlamdır"
             binding.tvBatchesPlaceholder.visibility = View.VISIBLE
             binding.rvRiskyBatches.visibility       = View.GONE
         } else {
@@ -192,11 +231,13 @@ class DepartmentDashboardFragment : Fragment() {
             riskyBatchAdapter.submitList(uiModels)
         }
 
+        // ── WASTE LOGS ────────────────────────────────────────
         val totalWaste = data.wasteLogs.sumOf { it.totalLoss }
-        binding.tvTotalWasteLabel.text = "Cəmi: ${String.format("%.2f", totalWaste)} AZN"
+        binding.tvTotalWasteLabel.text =
+            "Cəmi risk: ${String.format("%.2f", totalWaste)} AZN"
 
         if (data.wasteLogs.isEmpty()) {
-            binding.tvWasteLogPlaceholder.text       = "İsraf qeydi yoxdur ✓"
+            binding.tvWasteLogPlaceholder.text       = "✓ İsraf qeydi yoxdur"
             binding.tvWasteLogPlaceholder.visibility = View.VISIBLE
             binding.rvWasteLogs.visibility           = View.GONE
         } else {
@@ -223,7 +264,8 @@ class DepartmentDashboardFragment : Fragment() {
             binding.cardWaste,
             binding.cardStockHealth,
             binding.cardScanBarcode,
-            binding.cardLogWaste
+            binding.cardLogWaste,
+            binding.cardBatches
         ).forEachIndexed { i, card ->
             card.alpha        = 0f
             card.translationY = 30f

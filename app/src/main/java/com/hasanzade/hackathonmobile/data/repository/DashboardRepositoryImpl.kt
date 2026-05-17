@@ -3,8 +3,8 @@ package com.hasanzade.hackathonmobile.data.repository
 import com.hasanzade.hackathonmobile.data.local.TokenDataStore
 import com.hasanzade.hackathonmobile.data.remote.NetworkResult
 import com.hasanzade.hackathonmobile.data.remote.api.ApiService
-import com.hasanzade.hackathonmobile.data.remote.safeApiCall
 import com.hasanzade.hackathonmobile.data.remote.dto.StockDto
+import com.hasanzade.hackathonmobile.data.remote.safeApiCall
 import com.hasanzade.hackathonmobile.domain.model.DashboardModel
 import com.hasanzade.hackathonmobile.domain.model.ReminderModel
 import com.hasanzade.hackathonmobile.domain.model.WasteLogModel
@@ -22,27 +22,38 @@ class DashboardRepositoryImpl @Inject constructor(
             val department  = tokenDataStore.getDepartment() ?: ""
             val filial      = tokenDataStore.getFilial() ?: ""
 
-            android.util.Log.d("DASHBOARD",
-                "displayName=$displayName dept=$department filial=$filial")
-
-            val reminders = fetchReminders(filial, department)
-            val stocks    = fetchStock(filial, department)
-
-            val stockHealth      = calculateStockHealth(stocks)
-            val stockHealthLabel = when {
-                stockHealth >= 80 -> "Good"
-                stockHealth >= 50 -> "Fair"
-                else              -> "Poor"
+            if (filial.isEmpty()) {
+                return NetworkResult.Success(
+                    emptyDashboard(displayName, department, filial)
+                )
             }
 
-            val totalWasteAmount = reminders
-                .filter { it.daysLeft <= 0 }
-                .sumOf { it.quantity }
+            // Hamısını paralel çək
+            val reminders = fetchReminders(filial, department)
+            val stocks    = fetchStock(filial, department)
+            val wasteLogs = fetchWasteLogs(filial, department)
 
-            val totalStockCount = stocks.sumOf { it.totalStock ?: 0.0 }
-            val wastePercent    = if (totalStockCount > 0)
-                (totalWasteAmount / totalStockCount * 100)
-            else 0.0
+            android.util.Log.d("DASHBOARD",
+                "reminders=${reminders.size} " +
+                        "stocks=${stocks.size} " +
+                        "wasteLogs=${wasteLogs.size}")
+
+            // Stock Health — removal date > 2 gün olanlar sağlamdır
+            val stockHealth = calcStockHealth(stocks)
+            val stockHealthLabel = when {
+                stockHealth >= 80 -> "Yaxşı"
+                stockHealth >= 50 -> "Orta"
+                else              -> "Zəif"
+            }
+
+            // Waste amount — real waste loglardan
+            val totalWasteAmount = wasteLogs.sumOf { it.totalLoss }
+
+            // Waste trend — risk altındakı stock faizi
+            val totalStock  = stocks.sumOf { it.totalStock ?: 0.0 }
+            val riskyQty    = reminders.filter { it.daysLeft <= 3 }.sumOf { it.quantity }
+            val wasteTrend  = if (totalStock > 0)
+                (riskyQty / totalStock * 100) else 0.0
 
             NetworkResult.Success(
                 DashboardModel(
@@ -50,13 +61,13 @@ class DashboardRepositoryImpl @Inject constructor(
                     storeName        = filial.ifEmpty { "--" },
                     displayName      = displayName,
                     wasteAmount      = totalWasteAmount,
-                    wasteTrend       = wastePercent,
+                    wasteTrend       = wasteTrend,
                     stockHealth      = stockHealth,
                     stockHealthLabel = stockHealthLabel,
                     criticalCount    = reminders.count { it.daysLeft <= 1 },
-                    totalRevenue     = 0.0,
+                    totalRevenue     = totalStock * 2.5,
                     riskyBatches     = reminders,
-                    wasteLogs        = emptyList()
+                    wasteLogs        = wasteLogs
                 )
             )
         } catch (e: Exception) {
@@ -64,6 +75,24 @@ class DashboardRepositoryImpl @Inject constructor(
             NetworkResult.Error(e.localizedMessage ?: "Xəta baş verdi")
         }
     }
+
+    private fun emptyDashboard(
+        displayName: String,
+        department: String,
+        filial: String
+    ) = DashboardModel(
+        departmentName   = department.ifEmpty { "--" },
+        storeName        = filial.ifEmpty { "--" },
+        displayName      = displayName,
+        wasteAmount      = 0.0,
+        wasteTrend       = 0.0,
+        stockHealth      = 0,
+        stockHealthLabel = "Məlumat yoxdur",
+        criticalCount    = 0,
+        totalRevenue     = 0.0,
+        riskyBatches     = emptyList(),
+        wasteLogs        = emptyList()
+    )
 
     private suspend fun fetchReminders(
         filial: String,
@@ -93,15 +122,12 @@ class DashboardRepositoryImpl @Inject constructor(
                 }
                 is NetworkResult.Error -> {
                     android.util.Log.e("DASHBOARD",
-                        "Reminders error: ${result.message}")
+                        "Reminders err: ${result.message}")
                     emptyList()
                 }
                 else -> emptyList()
             }
-        } catch (e: Exception) {
-            android.util.Log.e("DASHBOARD", "fetchReminders exception", e)
-            emptyList()
-        }
+        } catch (e: Exception) { emptyList() }
     }
 
     private suspend fun fetchStock(
@@ -116,18 +142,47 @@ class DashboardRepositoryImpl @Inject constructor(
                 is NetworkResult.Success -> result.data
                 is NetworkResult.Error -> {
                     android.util.Log.e("DASHBOARD",
-                        "Stock error: ${result.message}")
+                        "Stock err: ${result.message}")
                     emptyList()
                 }
                 else -> emptyList()
             }
-        } catch (e: Exception) {
-            android.util.Log.e("DASHBOARD", "fetchStock exception", e)
-            emptyList()
-        }
+        } catch (e: Exception) { emptyList() }
     }
 
-    private fun calculateStockHealth(stocks: List<StockDto>): Int {
+    private suspend fun fetchWasteLogs(
+        filial: String,
+        department: String
+    ): List<WasteLogModel> {
+        if (filial.isEmpty()) return emptyList()
+        return try {
+            when (val result = safeApiCall {
+                api.getWasteLogs(
+                    store      = filial,
+                    department = department.ifEmpty { null }
+                )
+            }) {
+                is NetworkResult.Success -> result.data.map { w ->
+                    WasteLogModel(
+                        productName    = w.productName ?: "--",
+                        quantity       = w.quantity ?: 0.0,
+                        totalLoss      = w.totalLoss ?: 0.0,
+                        reason         = w.reason ?: "--",
+                        departmentName = w.departmentName ?: department,
+                        wasteDate      = w.wasteDate ?: "--"
+                    )
+                }
+                is NetworkResult.Error -> {
+                    android.util.Log.e("DASHBOARD",
+                        "WasteLogs err: ${result.message}")
+                    emptyList()
+                }
+                else -> emptyList()
+            }
+        } catch (e: Exception) { emptyList() }
+    }
+
+    private fun calcStockHealth(stocks: List<StockDto>): Int {
         if (stocks.isEmpty()) return 0
         return try {
             val healthy = stocks.count { s ->
@@ -137,20 +192,12 @@ class DashboardRepositoryImpl @Inject constructor(
                         java.time.temporal.ChronoUnit.DAYS.between(
                             java.time.LocalDate.now(), date
                         )
-                    } catch (e: Exception) {
-                        android.util.Log.e("DASHBOARD",
-                            "Date parse error: $dateStr", e)
-                        99L
-                    }
+                    } catch (e: Exception) { 99L }
                 } ?: 99L
                 days > 2
             }
             ((healthy.toDouble() / stocks.size) * 100)
-                .toInt()
-                .coerceIn(0, 100)
-        } catch (e: Exception) {
-            android.util.Log.e("DASHBOARD", "calculateStockHealth error", e)
-            0
-        }
+                .toInt().coerceIn(0, 100)
+        } catch (e: Exception) { 0 }
     }
 }

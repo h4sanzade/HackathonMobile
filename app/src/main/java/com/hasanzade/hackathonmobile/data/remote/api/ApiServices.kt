@@ -48,10 +48,18 @@ interface ApiService {
         @Query("token") token: String
     ): Response<String>
 
+    // batchId olmadan da waste log göndər
     @POST("api/waste/log")
     suspend fun logWaste(
         @Body request: WasteLogRequestDto
     ): Response<WasteLogResponseDto>
+
+    // Waste logları gətir
+    @GET("api/waste/logs")
+    suspend fun getWasteLogs(
+        @Query("store") store: String,
+        @Query("department") department: String? = null
+    ): Response<List<WasteLogResponseDto>>
 
     @GET("api/ai/analyze")
     suspend fun getAiAnalysis(): Response<AiAnalysisDto>

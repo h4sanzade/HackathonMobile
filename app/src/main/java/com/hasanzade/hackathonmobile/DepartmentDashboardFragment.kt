@@ -11,7 +11,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.snackbar.Snackbar
-import com.hasanzade.hackathonmobile.data.local.TokenDataStore
 import com.hasanzade.hackathonmobile.data.remote.NetworkResult
 import com.hasanzade.hackathonmobile.databinding.FragmentDepartmentDashboardBinding
 import com.hasanzade.hackathonmobile.domain.model.DashboardModel
@@ -48,7 +47,6 @@ class DepartmentDashboardFragment : Fragment() {
         setupClickListeners()
         observeViewModel()
 
-        // Log Waste ekranından qayıdanda dashboard yenilə
         findNavController()
             .currentBackStackEntry
             ?.savedStateHandle
@@ -61,12 +59,10 @@ class DepartmentDashboardFragment : Fragment() {
     }
 
     private fun setupRecyclerViews() {
-        binding.rvRiskyBatches.layoutManager =
-            LinearLayoutManager(requireContext())
+        binding.rvRiskyBatches.layoutManager = LinearLayoutManager(requireContext())
         binding.rvRiskyBatches.adapter = riskyBatchAdapter
 
-        binding.rvWasteLogs.layoutManager =
-            LinearLayoutManager(requireContext())
+        binding.rvWasteLogs.layoutManager = LinearLayoutManager(requireContext())
         binding.rvWasteLogs.adapter = wasteLogAdapter
     }
 
@@ -82,8 +78,13 @@ class DepartmentDashboardFragment : Fragment() {
                     )
                     true
                 }
-                R.id.nav_profile   -> { logout(); true }
-                else               -> false
+                R.id.nav_profile   -> {
+                    findNavController().navigate(
+                        R.id.action_departmentDashboard_to_profileFragment
+                    )
+                    true
+                }
+                else -> false
             }
         }
     }
@@ -99,7 +100,11 @@ class DepartmentDashboardFragment : Fragment() {
                 R.id.action_departmentDashboard_to_logWasteFragment
             )
         }
-        binding.ivSettings.setOnClickListener { logout() }
+        binding.ivSettings.setOnClickListener {
+            findNavController().navigate(
+                R.id.action_departmentDashboard_to_profileFragment
+            )
+        }
     }
 
     private fun observeViewModel() {
@@ -116,10 +121,8 @@ class DepartmentDashboardFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.resolveState.collect { result ->
                 when (result) {
-                    is NetworkResult.Success ->
-                        showSnackbar("✓ ${result.data}")
-                    is NetworkResult.Error ->
-                        showSnackbar("⚠ ${result.message}")
+                    is NetworkResult.Success -> showSnackbar("✓ ${result.data}")
+                    is NetworkResult.Error   -> showSnackbar("⚠ ${result.message}")
                     else -> Unit
                 }
             }
@@ -127,25 +130,24 @@ class DepartmentDashboardFragment : Fragment() {
     }
 
     private fun showLoading() {
-        binding.tvAppName.text              = "FreshGuard"
-        binding.tvSectorLabel.text          = "Yüklənir..."
-        binding.tvWasteLabel.text           = "-- WASTE"
-        binding.tvWasteAmount.text          = "--"
-        binding.tvWasteTrend.text           = "↑ --%"
-        binding.tvStockHealthPercent.text   = "--%"
-        binding.tvStockHealthLabel.text     = "--"
+        binding.tvAppName.text               = "FreshGuard"
+        binding.tvSectorLabel.text           = "Yüklənir..."
+        binding.tvWasteLabel.text            = "-- WASTE"
+        binding.tvWasteAmount.text           = "--"
+        binding.tvWasteTrend.text            = "↑ --%"
+        binding.tvStockHealthPercent.text    = "--%"
+        binding.tvStockHealthLabel.text      = "--"
         binding.progressStockHealth.progress = 0
-        binding.tvNeedsAttention.text       = "--"
-        binding.tvBatchesPlaceholder.text   = "Yüklənir..."
+        binding.tvNeedsAttention.text        = "--"
+        binding.tvBatchesPlaceholder.text    = "Yüklənir..."
         binding.tvBatchesPlaceholder.visibility = View.VISIBLE
-        binding.rvRiskyBatches.visibility   = View.GONE
-        binding.tvWasteLogPlaceholder.text  = "Yüklənir..."
+        binding.rvRiskyBatches.visibility    = View.GONE
+        binding.tvWasteLogPlaceholder.text   = "Yüklənir..."
         binding.tvWasteLogPlaceholder.visibility = View.VISIBLE
-        binding.rvWasteLogs.visibility      = View.GONE
+        binding.rvWasteLogs.visibility       = View.GONE
     }
 
     private fun showData(data: DashboardModel) {
-        // ── Header ────────────────────────────────────────
         binding.tvAppName.text = data.displayName
         binding.tvSectorLabel.text = buildString {
             if (data.storeName != "--") append(data.storeName)
@@ -154,23 +156,17 @@ class DepartmentDashboardFragment : Fragment() {
             if (isEmpty()) append("Sector View: --")
         }
 
-        // ── Waste card — AZN ──────────────────────────────
-        binding.tvWasteLabel.text  =
-            "${data.departmentName.uppercase().take(12)} WASTE"
-        binding.tvWasteAmount.text =
-            String.format("%.2f", data.wasteAmount)
+        binding.tvWasteLabel.text  = "${data.departmentName.uppercase().take(12)} WASTE"
+        binding.tvWasteAmount.text = String.format("%.2f", data.wasteAmount)
         val trendSign = if (data.wasteTrend >= 0) "↑" else "↓"
-        binding.tvWasteTrend.text  =
-            "$trendSign ${String.format("%.1f", kotlin.math.abs(data.wasteTrend))}%"
+        binding.tvWasteTrend.text  = "$trendSign ${String.format("%.1f", kotlin.math.abs(data.wasteTrend))}%"
 
-        // ── Stock Health card — faiz ───────────────────────
         binding.tvStockHealthPercent.text =
             if (data.stockHealth == 0) "--%"
             else "${data.stockHealth}%"
         binding.tvStockHealthLabel.text      = data.stockHealthLabel
         binding.progressStockHealth.progress = data.stockHealth
 
-        // ── Risky Batches ─────────────────────────────────
         binding.tvNeedsAttention.text =
             if (data.riskyBatches.isEmpty()) "Təhlükəsiz"
             else "Diqqət: ${data.riskyBatches.size}"
@@ -196,10 +192,8 @@ class DepartmentDashboardFragment : Fragment() {
             riskyBatchAdapter.submitList(uiModels)
         }
 
-        // ── Waste Logs ────────────────────────────────────
         val totalWaste = data.wasteLogs.sumOf { it.totalLoss }
-        binding.tvTotalWasteLabel.text =
-            "Cəmi: ${String.format("%.2f", totalWaste)} AZN"
+        binding.tvTotalWasteLabel.text = "Cəmi: ${String.format("%.2f", totalWaste)} AZN"
 
         if (data.wasteLogs.isEmpty()) {
             binding.tvWasteLogPlaceholder.text       = "İsraf qeydi yoxdur ✓"
@@ -208,22 +202,19 @@ class DepartmentDashboardFragment : Fragment() {
         } else {
             binding.tvWasteLogPlaceholder.visibility = View.GONE
             binding.rvWasteLogs.visibility           = View.VISIBLE
-            // Ən son 5 qeydi göstər
-            wasteLogAdapter.submitList(
-                data.wasteLogs.takeLast(5).reversed()
-            )
+            wasteLogAdapter.submitList(data.wasteLogs.takeLast(5).reversed())
         }
 
         animateCards()
     }
 
     private fun showError(message: String) {
-        binding.tvBatchesPlaceholder.text       = "⚠ $message"
-        binding.tvBatchesPlaceholder.visibility = View.VISIBLE
-        binding.rvRiskyBatches.visibility       = View.GONE
-        binding.tvWasteLogPlaceholder.text      = "⚠ $message"
+        binding.tvBatchesPlaceholder.text        = "⚠ $message"
+        binding.tvBatchesPlaceholder.visibility  = View.VISIBLE
+        binding.rvRiskyBatches.visibility        = View.GONE
+        binding.tvWasteLogPlaceholder.text       = "⚠ $message"
         binding.tvWasteLogPlaceholder.visibility = View.VISIBLE
-        binding.rvWasteLogs.visibility          = View.GONE
+        binding.rvWasteLogs.visibility           = View.GONE
         showSnackbar(message)
     }
 
@@ -248,17 +239,6 @@ class DepartmentDashboardFragment : Fragment() {
 
     private fun showSnackbar(msg: String) {
         Snackbar.make(binding.root, msg, Snackbar.LENGTH_LONG).show()
-    }
-
-    private fun logout() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            TokenDataStore(requireContext()).clear()
-            if (isAdded) {
-                findNavController().navigate(
-                    R.id.action_departmentDashboard_to_loginFragment
-                )
-            }
-        }
     }
 
     override fun onDestroyView() {

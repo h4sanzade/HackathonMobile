@@ -1,18 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Bravo Azerbaijan</string>
-    <string name="login_welcome">Xoş gəlmisiniz!</string>
-    <string name="login_subtitle">Bravo Azerbaijan analitika panelinə daxil olmaq üçün etimadnamələrinizi daxil edin.</string>
-    <string name="label_user_id">İstifadəçi ID</string>
-    <string name="label_password">Şifrə</string>
-    <string name="forgot_password">Şifrəni unutmusunuz?</string>
-    <string name="btn_login">Daxil ol</string>
+    <string name="app_name">FreshGuardo</string>
+    <string name="login_welcome">Welcome!</string>
+    <string name="login_subtitle">Enter your credentials to access the Bravo Azerbaijan analytics panel.</string>
+    <string name="label_user_id">User ID</string>
+    <string name="label_password">Password</string>
+    <string name="forgot_password">Forgot your password?</string>
+    <string name="btn_login">Log In</string>
     <string name="powered_by">POWERED BY</string>
-    <string name="company_name">Bravo Azerbaijan</string>
+    <string name="company_name">Bravo</string>
     <string name="app_version">v4.2.1-Enterprise</string>
-    <string name="error_empty_fields">İstifadəçi ID və şifrəni daxil edin</string>
-    <string name="error_login_failed">Daxilolma uğursuz oldu. Yenidən cəhd edin.</string>
-    <string name="loading">Yüklənir…</string>
+    <string name="error_empty_fields">Please enter your User ID and password</string>
+    <string name="error_login_failed">Login failed. Please try again.</string>
+    <string name="loading">Loading…</string>
+
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>
